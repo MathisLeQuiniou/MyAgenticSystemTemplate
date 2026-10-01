@@ -70,15 +70,15 @@ Autres commandes : `./app.sh api | tools | front | migrate | test`.
 backend/
 ├── agentic/
 │   ├── agents/        BaseAgent, LLMAgent (boucle outils en sous-graphe), RouterAgent
-│   ├── graphs/        BaseGraph, registre (@register_graph), examples/
+│   ├── graphs/        BaseGraph, graphs_registry (@register_graph), examples/
 │   ├── states/        BaseState (TypedDict LangGraph) + reducers
-│   ├── tools/         outils locaux, adaptateur MCP, ToolRegistry
+│   ├── tools/         local_tools, mcp_client, tools_registry (ToolRegistry)
 │   ├── llm/           profils de modèles + factory (OpenAI-compatible, Ollama, fake)
 │   ├── skills/        SkillRegistry + outils load_skill / read_skill_file
 │   └── tracing/       TraceCollector : astream_events LangGraph → événements de trace
 ├── tool_servers/      serveurs MCP (FastMCP) lancés par app.sh
 ├── api/               FastAPI : routes graphs / runs / SSE
-├── config/            settings (.env), models.yaml, mcp_servers.yaml
+├── config/            settings (.env), models.yaml, mcp_servers.yaml (+ loader mcp.py)
 ├── db/                SQLAlchemy async, repositories, Alembic
 ├── schemas/           modèles Pydantic (API + événements)
 ├── services/          RunService, EventBus (SSE), checkpointer Postgres
@@ -126,7 +126,7 @@ dessiné par le frontend. Surcharge `build_input()` / `build_output()` si ton
 graphe attend autre chose qu'un message.
 
 ### Outils — `backend/agentic/tools` et `backend/tool_servers`
-- **Outils locaux** : fonctions `@tool` dans `tools/local.py`.
+- **Outils locaux** : fonctions `@tool` dans `tools/local_tools.py`.
 - **Serveurs MCP** : déclarés dans `config/mcp_servers.yaml`. Ceux qui ont un
   `module` sont lancés par `app.sh` (exemple : `tool_servers/demo_server.py`,
   `calculate` + `search_knowledge_base`) ; les autres (externes, stdio…) sont

@@ -16,7 +16,7 @@ from typing_extensions import NotRequired
 
 from backend.agentic.agents import LLMAgent, RouterAgent
 from backend.agentic.graphs.base import BaseGraph
-from backend.agentic.graphs.registry import register_graph
+from backend.agentic.graphs.graphs_registry import register_graph
 from backend.agentic.states import BaseState
 
 

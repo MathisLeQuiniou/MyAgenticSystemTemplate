@@ -18,7 +18,7 @@ import sys
 import time
 from pathlib import Path
 
-from backend.agentic.tools.mcp import load_mcp_config
+from backend.config import load_mcp_config
 from backend.utils import get_logger, setup_logging
 
 log = get_logger("tool_servers")
@@ -83,7 +83,7 @@ def main() -> None:
         procs.append((name, cfg, proc))
 
     if not procs:
-        log.info("No local MCP server to start.")
+        log.info("No MCP server to start.")
         READY_FILE.touch()
         return
 
