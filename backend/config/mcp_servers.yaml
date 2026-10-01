@@ -1,0 +1,19 @@
+# MCP tool servers.
+#
+# `python -m backend.tool_servers` (called by app.sh) starts every server that
+# has a `module`; agents then connect to them through `url`.
+# Servers without `module` are external: they are only connected to.
+
+servers:
+  demo:
+    module: backend.tool_servers.demo_server
+    transport: streamable_http
+    host: 127.0.0.1
+    port: 8001
+    url: http://127.0.0.1:8001/mcp
+
+  # Example of an external / stdio server:
+  # filesystem:
+  #   transport: stdio
+  #   command: npx
+  #   args: ["-y", "@modelcontextprotocol/server-filesystem", "/tmp"]

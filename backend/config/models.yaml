@@ -1,0 +1,47 @@
+# LLM model profiles.
+#
+# Each profile describes how to reach one model. Agents reference a profile by
+# name, and a run can override the profile from the API / frontend.
+#
+# provider:
+#   openai  -> any OpenAI-compatible endpoint (OpenAI, Azure-style gateways,
+#              internal company APIs, vLLM, LM Studio, Ollama's /v1 endpoint...)
+#   ollama  -> native Ollama API (langchain-ollama)
+#   fake    -> deterministic offline model, used for tests and demos
+#
+# Values like ${MY_VAR} are expanded from the environment at load time.
+
+default: ollama
+
+profiles:
+  ollama:
+    provider: ollama
+    model: qwen3:8b
+    base_url: http://localhost:11434
+    temperature: 0.1
+
+  ollama-openai-compat:
+    provider: openai
+    model: qwen3:8b
+    base_url: http://localhost:11434/v1
+    api_key: ollama
+    temperature: 0.1
+
+  # Template for a secured, OpenAI-compatible internal API.
+  internal:
+    provider: openai
+    model: ${INTERNAL_LLM_MODEL}
+    base_url: ${INTERNAL_LLM_BASE_URL}
+    api_key_env: INTERNAL_LLM_API_KEY
+    temperature: 0.1
+    timeout: 120
+    max_retries: 3
+    default_headers:
+      X-Client-Id: ${INTERNAL_LLM_CLIENT_ID}
+    ca_bundle: ${INTERNAL_LLM_CA_BUNDLE}
+    verify_ssl: true
+    proxy: ${INTERNAL_LLM_PROXY}
+
+  fake:
+    provider: fake
+    model: fake-tool-caller

@@ -1,0 +1,56 @@
+worker_processes 1;
+
+# Override PID file location
+pid ${ROOT}/tmp/nginx/nginx.pid;
+
+events {
+    worker_connections 1024;
+}
+
+http {
+    # re-route to custom tmp directory (writable)
+    client_body_temp_path ${ROOT}/tmp/nginx/nginx_client_body;
+    proxy_temp_path ${ROOT}/tmp/nginx/nginx_proxy;
+    fastcgi_temp_path ${ROOT}/tmp/nginx/nginx_fastcgi;
+    uwsgi_temp_path ${ROOT}/tmp/nginx/nginx_uwsgi;
+    scgi_temp_path ${ROOT}/tmp/nginx/nginx_scgi;
+
+    # types
+    include /opt/homebrew/etc/nginx/mime.types;
+    default_type application/octet-stream;
+
+    # logs
+    access_log ${ROOT}/tmp/logs/access.log;
+    error_log ${ROOT}/tmp/logs/error.log;
+
+    # gzip compression
+    gzip on;
+    gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;
+
+    server {
+        listen ${NGINX_PORT} default_server;
+        listen [::]:${NGINX_PORT} default_server;
+        server_name _;
+
+        # react frontend
+        root ${ROOT}/frontend/dist;
+        index index.html;
+        
+        location /assets/ {
+            try_files $uri =404;
+        }
+
+        location / {
+            try_files $uri $uri/ /index.html;
+        }
+
+        # proxy to FastAPI
+        location /api/ {
+            proxy_pass http://${HOST}:${API_PORT};
+            proxy_set_header Host $host;
+            proxy_set_header X-real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+    }
+}

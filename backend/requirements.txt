@@ -1,0 +1,27 @@
+# --- Agentic core ---------------------------------------------------------
+langgraph
+langgraph-checkpoint-postgres
+langchain-core
+langchain-openai
+langchain-ollama
+langchain-mcp-adapters
+mcp
+
+# --- API ------------------------------------------------------------------
+fastapi
+uvicorn
+sse-starlette
+
+# --- Database -------------------------------------------------------------
+sqlalchemy
+asyncpg
+psycopg
+alembic
+greenlet
+
+# --- Config / utils -------------------------------------------------------
+pydantic
+pydantic-settings
+pyyaml
+httpx
+typing-extensions
