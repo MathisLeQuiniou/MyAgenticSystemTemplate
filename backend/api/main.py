@@ -25,24 +25,40 @@ settings = get_settings()
 setup_logging(settings.log_level)
 log = get_logger(__name__)
 
-
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
+    # --- start up ------------------------------------------------------------
     interrupted = await RunRepository().mark_interrupted()
     if interrupted:
         log.warning("%d run(s) were interrupted by the last shutdown", interrupted)
 
     async with postgres_checkpointer() as checkpointer:
+        # get tools
         tools = ToolRegistry()
         await tools.load()
+
+        # get agentic graphs
         graphs_registry = GraphRegistry(tools, checkpointer)
         graphs_registry.load()
+
+        # get events Bus
         bus = EventBus()
+
+        # build services
         run_service = RunService(graphs_registry, bus)
-        app.state.container = AppContainer(tools=tools, graphs=graphs_registry, bus=bus, runs=run_service)
+
+        # store persistent ressources
+        app.state.container = AppContainer(
+            tools=tools, 
+            graphs=graphs_registry, 
+            bus=bus, 
+            runs=run_service
+        )
         log.info("API ready: %d graph(s), %d tool(s)", len(graphs_registry.all()), len(tools.all()))
         try:
             yield
+
+        # --- shut down--------------------------------------------------------
         finally:
             await run_service.shutdown()
     await dispose_engine()

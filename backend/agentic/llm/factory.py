@@ -7,6 +7,7 @@ from functools import lru_cache
 
 import httpx
 from langchain_core.language_models import BaseChatModel
+from langchain_openai import ChatOpenAI
 
 from backend.agentic.llm.profiles import ModelProfile, get_profile
 
@@ -28,7 +29,6 @@ def _httpx_kwargs(profile: ModelProfile) -> dict:
 
 
 def _build_openai(profile: ModelProfile) -> BaseChatModel:
-    from langchain_openai import ChatOpenAI
 
     httpx_kwargs = _httpx_kwargs(profile)
     kwargs = dict(

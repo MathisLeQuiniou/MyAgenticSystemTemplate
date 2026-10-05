@@ -6,7 +6,7 @@ and are created by `AsyncPostgresSaver.setup()`, not by Alembic.
 
 from __future__ import annotations
 
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
 import psycopg
@@ -18,7 +18,7 @@ from backend.config import get_settings
 
 
 @asynccontextmanager
-async def postgres_checkpointer() -> AsyncIterator[AsyncPostgresSaver]:
+async def postgres_checkpointer() -> AsyncGenerator[AsyncPostgresSaver]:
     settings = get_settings()
     url, schema = settings.checkpoint_database_url, settings.checkpoint_schema
 

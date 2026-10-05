@@ -11,8 +11,9 @@ from backend.services import EventBus, RunService
 
 @dataclass
 class AppContainer:
-    """Long-lived services, built once in the app lifespan."""
-
+    """
+    Long-lived services, built once in the app lifespan.
+    """
     tools: ToolRegistry
     graphs: GraphRegistry
     bus: EventBus

@@ -46,9 +46,9 @@ class GraphRegistry:
                 graph = cls(self.tools)
                 graph.compile(self.checkpointer)
                 self._graphs[name] = graph
-                log.info("Graph '%s' compiled", name)
+                log.info("Graph %s compiled", name)
             except Exception:
-                log.exception("Failed to compile graph '%s'", name)
+                log.exception("Failed to compile graph %s", name)
 
     def get(self, name: str) -> BaseGraph:
         try:

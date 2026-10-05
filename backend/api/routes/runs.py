@@ -7,6 +7,7 @@ from sse_starlette.sse import EventSourceResponse
 
 from backend.api.dependencies import AppContainer, get_container
 from backend.schemas import TERMINAL_EVENT_TYPES, RunCreate, RunRead, TraceEvent
+from backend.utils import to_jsonable
 
 router = APIRouter(tags=["runs"])
 _TERMINAL = {t.value for t in TERMINAL_EVENT_TYPES}
@@ -53,8 +54,6 @@ async def cancel_run(run_id: uuid.UUID, c: AppContainer = Depends(get_container)
 async def get_run_state(run_id: uuid.UUID, c: AppContainer = Depends(get_container)) -> dict:
     """Latest checkpointed state of the run's thread (LangGraph checkpointer)."""
     run = await _get_run(run_id, c)
-    from backend.utils import to_jsonable
-
     graph = c.graphs.get(run.graph_name)
     snapshot = await graph.compiled.aget_state({"configurable": {"thread_id": run.thread_id}})
     return {"thread_id": run.thread_id, "values": to_jsonable(snapshot.values), "next": list(snapshot.next)}
