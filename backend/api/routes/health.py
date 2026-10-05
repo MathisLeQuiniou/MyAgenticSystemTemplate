@@ -5,7 +5,7 @@ from sqlalchemy import text
 
 from backend.agentic.skills import get_skill_registry
 from backend.api.dependencies import AppContainer, get_container
-from backend.db import session_scope
+from backend.infra import session_scope
 
 router = APIRouter(tags=["health"])
 
@@ -14,7 +14,7 @@ router = APIRouter(tags=["health"])
 async def health(c: AppContainer = Depends(get_container)) -> dict:
     db_ok = True
     try:
-        async with session_scope() as s:
+        async with session_scope(c.db) as s:
             await s.execute(text("SELECT 1"))
     except Exception:  # noqa: BLE001
         db_ok = False

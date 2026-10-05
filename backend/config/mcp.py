@@ -1,7 +1,7 @@
 """Load the MCP server declarations (backend/config/mcp_servers.yaml).
 
 Shared by the server launcher (`backend/tool_servers/__main__.py`) and the
-MCP client (`backend/agentic/tools/mcp_client.py`).
+MCP client (`backend/infra/mcp_client.py`).
 """
 
 from __future__ import annotations

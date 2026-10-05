@@ -6,6 +6,7 @@ from fastapi import Request
 
 from backend.agentic.graphs import GraphRegistry
 from backend.agentic.tools import ToolRegistry
+from backend.infra import DbSessionmaker
 from backend.services import EventBus, RunService
 
 
@@ -14,6 +15,7 @@ class AppContainer:
     """
     Long-lived services, built once in the app lifespan.
     """
+    db: DbSessionmaker
     tools: ToolRegistry
     graphs: GraphRegistry
     bus: EventBus

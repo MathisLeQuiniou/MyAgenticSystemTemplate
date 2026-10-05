@@ -20,11 +20,11 @@ log = get_logger(__name__)
 
 
 class RunService:
-    def __init__(self, graphs: GraphRegistry, bus: EventBus, runs: RunRepository | None = None, events: EventRepository | None = None) -> None:
+    def __init__(self, graphs: GraphRegistry, bus: EventBus, runs: RunRepository, events: EventRepository) -> None:
         self.graphs = graphs
         self.bus = bus
-        self.runs = runs or RunRepository()
-        self.events = events or EventRepository()
+        self.runs = runs
+        self.events = events
         self._tasks: dict[uuid.UUID, asyncio.Task] = {}
 
     # -- public API --------------------------------------------------------------

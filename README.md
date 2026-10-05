@@ -72,16 +72,17 @@ backend/
 │   ├── agents/        BaseAgent, LLMAgent (boucle outils en sous-graphe), RouterAgent
 │   ├── graphs/        BaseGraph, graphs_registry (@register_graph), examples/
 │   ├── states/        BaseState (TypedDict LangGraph) + reducers
-│   ├── tools/         local_tools, mcp_client, tools_registry (ToolRegistry)
+│   ├── tools/         local_tools, tools_registry (ToolRegistry)
 │   ├── llm/           profils de modèles + factory (OpenAI-compatible, Ollama, fake)
 │   ├── skills/        SkillRegistry + outils load_skill / read_skill_file
 │   └── tracing/       TraceCollector : astream_events LangGraph → événements de trace
 ├── tool_servers/      serveurs MCP (FastMCP) lancés par app.sh
 ├── api/               FastAPI : routes graphs / runs / SSE
 ├── config/            settings (.env), models.yaml, mcp_servers.yaml (+ loader mcp.py)
-├── db/                SQLAlchemy async, repositories, Alembic
+├── db/                modèles SQLAlchemy, repositories, Alembic
+├── infra/             connexions externes : Postgres (sessionmaker), checkpointer LangGraph, client MCP
 ├── schemas/           modèles Pydantic (API + événements)
-├── services/          RunService, EventBus (SSE), checkpointer Postgres
+├── services/          RunService, EventBus (SSE)
 ├── prompts/           prompts système en Markdown (identité des agents)
 ├── skills/            skills au format SKILL.md (instructions chargées à la demande)
 └── utils/

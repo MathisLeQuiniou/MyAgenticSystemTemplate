@@ -3,7 +3,7 @@ from __future__ import annotations
 from langchain_core.tools import BaseTool
 
 from backend.agentic.tools.local_tools import LOCAL_TOOLS
-from backend.agentic.tools.mcp_client import MCPToolProvider
+from backend.infra.mcp_client import MCPToolProvider
 from backend.utils import get_logger
 
 log = get_logger(__name__)

@@ -17,8 +17,9 @@ from backend.agentic.tools import ToolRegistry
 from backend.api.dependencies import AppContainer
 from backend.api.routes import graphs, health, runs, skills
 from backend.config import get_settings
-from backend.db import RunRepository, dispose_engine
-from backend.services import EventBus, RunService, postgres_checkpointer
+from backend.db import EventRepository, RunRepository
+from backend.infra import postgres_checkpointer, postgres_sessionmaker
+from backend.services import EventBus, RunService
 from backend.utils import get_logger, setup_logging
 
 settings = get_settings()
@@ -28,11 +29,16 @@ log = get_logger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     # --- start up ------------------------------------------------------------
-    interrupted = await RunRepository().mark_interrupted()
-    if interrupted:
-        log.warning("%d run(s) were interrupted by the last shutdown", interrupted)
+    # external connections (closed in reverse order on exit)
+    async with postgres_sessionmaker() as db, postgres_checkpointer() as checkpointer:
+        # data access to the app tables
+        runs_repo = RunRepository(db)
+        events_repo = EventRepository(db)
 
-    async with postgres_checkpointer() as checkpointer:
+        interrupted = await runs_repo.mark_interrupted()
+        if interrupted:
+            log.warning("%d run(s) were interrupted by the last shutdown", interrupted)
+
         # get tools
         tools = ToolRegistry()
         await tools.load()
@@ -44,15 +50,16 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
         # get events Bus
         bus = EventBus()
 
-        # build services
-        run_service = RunService(graphs_registry, bus)
+        # instantiate run service
+        run_service = RunService(graphs_registry, bus, runs_repo, events_repo)
 
         # store persistent ressources
         app.state.container = AppContainer(
-            tools=tools, 
-            graphs=graphs_registry, 
-            bus=bus, 
-            runs=run_service
+            db=db,
+            tools=tools,
+            graphs=graphs_registry,
+            bus=bus,
+            runs=run_service,
         )
         log.info("API ready: %d graph(s), %d tool(s)", len(graphs_registry.all()), len(tools.all()))
         try:
@@ -60,8 +67,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
 
         # --- shut down--------------------------------------------------------
         finally:
+            # cancel running runs while the database is still open to record it
             await run_service.shutdown()
-    await dispose_engine()
 
 
 def create_app() -> FastAPI:
