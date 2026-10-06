@@ -22,7 +22,7 @@ API openai compatible — or with the `fake` model to test without any LLM.
 
 ```bash
 python3.12 -m venv .venv
-source activate .venv/bin/activate
+source .venv/bin/activate
 pip install -r backend/requirements.txt
 ```
 
@@ -54,15 +54,13 @@ python -m backend.db.init_db
 ./app.sh
 ```
 
-- Frontend : http://127.0.0.1:5173
+- Frontend (servi par nginx) : http://127.0.0.1 (port `NGINX_PORT`, 80 par défaut)
 - API (Swagger) : http://127.0.0.1:8000/docs
 
 Dans le frontend, choisis le graphe, le modèle (`fake` fonctionne hors-ligne),
 écris un message et lance. Le graphe s'anime en direct ; clique un nœud pour
 filtrer la trace, clique une ligne de la trace pour voir prompts, réponses,
 arguments et résultats d'outils.
-
-Autres commandes : `./app.sh api | tools | front | migrate | test`.
 
 ## Structure
 
@@ -73,21 +71,21 @@ backend/
 │   ├── graphs/        BaseGraph, graphs_registry (@register_graph), examples/
 │   ├── states/        BaseState (TypedDict LangGraph) + reducers
 │   ├── tools/         local_tools, tools_registry (ToolRegistry)
-│   ├── llm/           profils de modèles + factory (OpenAI-compatible, Ollama, fake)
-│   ├── skills/        SkillRegistry + skill_tools (outils load_skill / read_skill_file)
-│   └── tracing/       TraceCollector : astream_events LangGraph → événements de trace
+│   └── skills/        SkillRegistry + skill_tools (outils load_skill / read_skill_file)
 ├── tool_servers/      serveurs MCP (FastMCP) lancés par app.sh
 ├── api/               FastAPI : routes graphs / runs / SSE
-├── config/            settings (.env), models.yaml, mcp_servers.yaml (+ loader mcp.py)
+├── config/            settings (.env), models.yaml (+ loader llm_profiles.py), mcp_servers.yaml (+ loader mcp.py)
 ├── db/                modèles SQLAlchemy, repositories, Alembic
-├── infra/             connexions externes : Postgres (sessionmaker), checkpointer LangGraph, client MCP
+├── infra/             connexions externes : Postgres (sessionmaker), checkpointer LangGraph, client MCP,
+│                      llm/ (clients LLM par profil : OpenAI-compatible, Ollama, fake)
 ├── schemas/           modèles Pydantic (API + événements)
-├── services/          RunService, EventBus (SSE)
+├── services/          RunService, EventBus (SSE), tracing (TraceCollector : astream_events → événements de trace)
 ├── prompts/           prompts système en Markdown (identité des agents)
 ├── skills/            skills au format SKILL.md (instructions chargées à la demande)
 └── utils/
-frontend/              React + TypeScript + Vite + React Flow
-tests/
+frontend/              React + TypeScript + Vite + React Flow (build servi depuis frontend/dist)
+nginx/                 nginx.conf.template (nginx.conf est généré par app.sh, non versionné)
+tmp/                   fichiers d'exécution : logs/, fichiers temporaires nginx (non versionné)
 app.sh                 lanceur unique
 ```
 
@@ -188,7 +186,7 @@ rejoue l'historique puis diffuse en direct (SSE).
 Nouvelle migration après modification de `backend/db/models.py` :
 ```bash
 .venv/bin/alembic -c backend/db/alembic.ini revision --autogenerate -m "ma modif"
-./app.sh migrate
+python -m backend.db.init_db
 ```
 
 ## API

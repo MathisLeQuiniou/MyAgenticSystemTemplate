@@ -16,15 +16,14 @@ import signal
 import subprocess
 import sys
 import time
-from pathlib import Path
 
-from backend.config import load_mcp_config
+from backend.config import ROOT_DIR, load_mcp_config
 from backend.utils import get_logger, setup_logging
 
 log = get_logger("tool_servers")
 
 READY_TIMEOUT = 10.0
-READY_FILE = Path("tmp/mcp_servers.ready")
+READY_FILE = ROOT_DIR / "tmp" / "mcp_servers.ready"  # waited for by app.sh
 
 
 def wait_for_port(
@@ -52,6 +51,7 @@ def main() -> None:
     procs: list[tuple[str, dict, subprocess.Popen]] = []
 
     # Remove stale readiness file from a previous run.
+    READY_FILE.parent.mkdir(parents=True, exist_ok=True)
     READY_FILE.unlink(missing_ok=True)
 
     for name, cfg in config.items():
@@ -144,7 +144,6 @@ def main() -> None:
         log.info("MCP server %s is ready.", name)
 
     # All MCP servers are ready.
-    READY_FILE.parent.mkdir(parents=True, exist_ok=True)
     READY_FILE.touch()
 
     log.info("All MCP servers are ready.")

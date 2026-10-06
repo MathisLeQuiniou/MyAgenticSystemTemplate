@@ -1,7 +1,7 @@
 """LLM clients: one entry point (`get_chat_model`) for every chat model used by the agents.
 
 Builds the LangChain client of a model profile (HTTP client, TLS, proxy, retries...).
-Profiles are loaded by `backend.config.models`.
+Profiles are loaded by `backend.config.llm_profiles`.
 """
 
 from __future__ import annotations

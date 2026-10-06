@@ -5,8 +5,7 @@ from typing import Any
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
 
-from backend.agentic.agents.base import BaseAgent, load_prompt
-from backend.agentic.agents.llm_agent import strip_thinking
+from backend.agentic.agents.base import BaseAgent, load_prompt, strip_thinking
 
 
 class RouterAgent(BaseAgent):

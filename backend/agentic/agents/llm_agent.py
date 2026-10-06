@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import re
 from collections.abc import Sequence
 from typing import Any
 
@@ -10,7 +9,7 @@ from langchain_core.tools import BaseTool
 from langgraph.graph import END, START, StateGraph
 from langgraph.prebuilt import ToolNode, tools_condition
 
-from backend.agentic.agents.base import BaseAgent, load_prompt
+from backend.agentic.agents.base import BaseAgent, load_prompt, strip_thinking
 from backend.agentic.skills import Skill, make_skill_tools, skills_catalog
 from backend.agentic.states import AgentLoopState
 
@@ -80,11 +79,3 @@ class LLMAgent(BaseAgent):
         loop.add_conditional_edges("agent", tools_condition, {"tools": "tools", END: END})
         loop.add_edge("tools", "agent")
         return loop.compile(name=self.name)
-
-
-_THINK_RE = re.compile(r"<think>.*?</think>\s*", re.DOTALL)
-
-
-def strip_thinking(text: str) -> str:
-    """Remove <think>...</think> blocks produced by reasoning models (qwen3, deepseek-r1...)."""
-    return _THINK_RE.sub("", text).strip()

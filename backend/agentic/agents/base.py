@@ -8,6 +8,7 @@ compiled subgraph for agents with an internal loop (see `LLMAgent`).
 from __future__ import annotations
 
 import datetime as dt
+import re
 from abc import ABC, abstractmethod
 from typing import Any
 
@@ -25,6 +26,14 @@ def load_prompt(name_or_text: str) -> str:
     if len(name_or_text) < 100 and path.exists():
         return path.read_text(encoding="utf-8").strip()
     return name_or_text
+
+
+_THINK_RE = re.compile(r"<think>.*?</think>\s*", re.DOTALL)
+
+
+def strip_thinking(text: str) -> str:
+    """Remove <think>...</think> blocks produced by reasoning models (qwen3, deepseek-r1...)."""
+    return _THINK_RE.sub("", text).strip()
 
 
 class BaseAgent(ABC):

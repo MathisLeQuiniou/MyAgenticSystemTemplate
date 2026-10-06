@@ -1,6 +1,6 @@
 from backend.schemas.events import TERMINAL_EVENT_TYPES, EventType, TraceEvent
 from backend.schemas.graphs import GraphDescription, GraphEdge, GraphNode, GraphSummary
-from backend.schemas.models import ModelProfileSummary
+from backend.schemas.llm import ModelProfileSummary
 from backend.schemas.runs import RunCreate, RunRead, RunStatus
 from backend.schemas.skills import SkillDetail, SkillSummary
 
