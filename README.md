@@ -74,7 +74,7 @@ backend/
 │   ├── states/        BaseState (TypedDict LangGraph) + reducers
 │   ├── tools/         local_tools, tools_registry (ToolRegistry)
 │   ├── llm/           profils de modèles + factory (OpenAI-compatible, Ollama, fake)
-│   ├── skills/        SkillRegistry + outils load_skill / read_skill_file
+│   ├── skills/        SkillRegistry + skill_tools (outils load_skill / read_skill_file)
 │   └── tracing/       TraceCollector : astream_events LangGraph → événements de trace
 ├── tool_servers/      serveurs MCP (FastMCP) lancés par app.sh
 ├── api/               FastAPI : routes graphs / runs / SSE
@@ -140,7 +140,8 @@ Une skill est un dossier au format Anthropic *Agent Skills* :
 et des fichiers annexes facultatifs (`references/`, `templates/`…).
 
 ```python
-LLMAgent("researcher", prompt="researcher", tools=[...], skills=["financial-calculations"])  # ou ["*"]
+# dans BaseGraph.build(), comme self.tools pour les outils
+LLMAgent("researcher", prompt="researcher", tools=[...], skills=self.skills.get_many("financial-calculations"))  # ou get_many("*")
 ```
 L'agent reçoit dans son prompt système le **catalogue** (nom + description) et
 deux outils : `load_skill(name)` pour lire les instructions, `read_skill_file(name, path)`

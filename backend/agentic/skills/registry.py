@@ -16,7 +16,6 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
-from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
@@ -84,7 +83,6 @@ class SkillRegistry:
     def __init__(self, root: Path | None = None) -> None:
         self.root = root or get_settings().skills_dir
         self._skills: dict[str, Skill] = {}
-        self.load()
 
     def load(self) -> None:
         self._skills.clear()
@@ -105,16 +103,12 @@ class SkillRegistry:
         except KeyError:
             raise KeyError(f"Unknown skill '{name}'. Available: {', '.join(self._skills) or '-'}") from None
 
-    def get_many(self, names: list[str] | tuple[str, ...]) -> list[Skill]:
-        """Resolve skill names; `["*"]` means every skill."""
-        if list(names) == ["*"]:
+    def get_many(self, *names: str) -> list[Skill]:
+        """Resolve skill names (raises KeyError if one is unknown); `"*"` means every skill."""
+        if names == ("*",):
             return self.all()
         return [self.get(n) for n in names]
 
     def all(self) -> list[Skill]:
         return list(self._skills.values())
 
-
-@lru_cache
-def get_skill_registry() -> SkillRegistry:
-    return SkillRegistry()

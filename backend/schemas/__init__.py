@@ -1,6 +1,8 @@
 from backend.schemas.events import TERMINAL_EVENT_TYPES, EventType, TraceEvent
-from backend.schemas.graphs import GraphDescription, GraphEdge, GraphNode, GraphSummary, ModelProfileSummary
+from backend.schemas.graphs import GraphDescription, GraphEdge, GraphNode, GraphSummary
+from backend.schemas.models import ModelProfileSummary
 from backend.schemas.runs import RunCreate, RunRead, RunStatus
+from backend.schemas.skills import SkillDetail, SkillSummary
 
 __all__ = [
     "TERMINAL_EVENT_TYPES",
@@ -13,5 +15,7 @@ __all__ = [
     "RunCreate",
     "RunRead",
     "RunStatus",
+    "SkillDetail",
+    "SkillSummary",
     "TraceEvent",
 ]

@@ -11,7 +11,7 @@ from langgraph.graph import END, START, StateGraph
 from langgraph.prebuilt import ToolNode, tools_condition
 
 from backend.agentic.agents.base import BaseAgent, load_prompt
-from backend.agentic.skills import get_skill_registry, make_skill_tools, skills_catalog
+from backend.agentic.skills import Skill, make_skill_tools, skills_catalog
 from backend.agentic.states import AgentLoopState
 
 
@@ -22,7 +22,7 @@ class LLMAgent(BaseAgent):
     - With tools: a ReAct loop compiled as a *subgraph* `agent <-> tools`, so each
       tool call shows up as a step of the graph path in the traces.
       After `max_iterations` model calls, tools are unbound to force an answer.
-    - With skills (names of folders in `backend/skills/`, or `["*"]`): the skills
+    - With skills (from the graph's SkillRegistry, e.g. `self.skills.get_many("my-skill")`): the skills
       catalog is appended to the system prompt and the `load_skill` /
       `read_skill_file` tools are added, so the agent loads instructions on demand.
     """
@@ -33,14 +33,14 @@ class LLMAgent(BaseAgent):
         prompt: str,
         tools: Sequence[BaseTool] = (),
         *,
-        skills: Sequence[str] = (),
+        skills: Sequence[Skill] = (),
         description: str = "",
         model_profile: str | None = None,
         max_iterations: int = 6,
     ) -> None:
         super().__init__(name, description, model_profile)
         self.prompt_template = load_prompt(prompt)
-        self.skills = get_skill_registry().get_many(tuple(skills)) if skills else []
+        self.skills = list(skills)
         self.tools = [*tools, *(make_skill_tools(self.skills) if self.skills else [])]
         self.max_iterations = max_iterations
 

@@ -6,6 +6,7 @@ import pkgutil
 from langgraph.checkpoint.base import BaseCheckpointSaver
 
 from backend.agentic.graphs.base import BaseGraph
+from backend.agentic.skills import SkillRegistry
 from backend.agentic.tools import ToolRegistry
 from backend.utils import get_logger
 
@@ -34,8 +35,9 @@ def discover_graphs(package: str = "backend.agentic.graphs") -> None:
 class GraphRegistry:
     """Holds one compiled instance of every registered graph."""
 
-    def __init__(self, tools: ToolRegistry, checkpointer: BaseCheckpointSaver | None = None) -> None:
+    def __init__(self, tools: ToolRegistry, skills: SkillRegistry, checkpointer: BaseCheckpointSaver | None = None) -> None:
         self.tools = tools
+        self.skills = skills
         self.checkpointer = checkpointer
         self._graphs: dict[str, BaseGraph] = {}
 
@@ -43,7 +45,7 @@ class GraphRegistry:
         discover_graphs()
         for name, cls in sorted(_GRAPH_CLASSES.items()):
             try:
-                graph = cls(self.tools)
+                graph = cls(self.tools, self.skills)
                 graph.compile(self.checkpointer)
                 self._graphs[name] = graph
                 log.info("Graph %s compiled", name)

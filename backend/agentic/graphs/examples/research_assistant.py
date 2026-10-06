@@ -43,7 +43,7 @@ class ResearchAssistantGraph(BaseGraph):
             "researcher",
             prompt="researcher",
             tools=self.tools.get("search_knowledge_base", "calculate", "get_current_time"),
-            skills=["financial-calculations"],
+            skills=self.skills.get_many("financial-calculations"),
         )
         writer = LLMAgent("writer", prompt="writer")
 

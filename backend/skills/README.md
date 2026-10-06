@@ -19,8 +19,9 @@ description: What it does and WHEN to use it. This is all the agent sees before 
 Step-by-step instructions. Refer to bundled files by relative path, e.g. references/api.md.
 ```
 
-Give a skill to an agent: `LLMAgent("researcher", prompt="researcher", tools=[...], skills=["my-skill"])`
-(`skills=["*"]` = every skill). The agent gets the catalog (name + description) in its
+Give a skill to an agent, in `BaseGraph.build()`:
+`LLMAgent("researcher", prompt="researcher", tools=[...], skills=self.skills.get_many("my-skill"))`
+(`get_many("*")` = every skill). The agent gets the catalog (name + description) in its
 system prompt and two tools: `load_skill(name)` and `read_skill_file(name, path)`.
 Each load shows up in the run trace (SKILL badge).
 

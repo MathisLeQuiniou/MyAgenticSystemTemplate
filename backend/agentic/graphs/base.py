@@ -15,6 +15,7 @@ from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.graph import StateGraph
 from langgraph.graph.state import CompiledStateGraph
 
+from backend.agentic.skills import SkillRegistry
 from backend.agentic.states import BaseState
 from backend.agentic.tools import ToolRegistry
 from backend.schemas import GraphDescription, GraphEdge, GraphNode
@@ -26,8 +27,9 @@ class BaseGraph(ABC):
     description: ClassVar[str] = ""
     state_schema: ClassVar[type] = BaseState
 
-    def __init__(self, tools: ToolRegistry) -> None:
+    def __init__(self, tools: ToolRegistry, skills: SkillRegistry) -> None:
         self.tools = tools
+        self.skills = skills
         self._compiled: CompiledStateGraph | None = None
 
     # -- to implement --------------------------------------------------------

@@ -13,9 +13,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.agentic.graphs import GraphRegistry
+from backend.agentic.skills import SkillRegistry
 from backend.agentic.tools import ToolRegistry
 from backend.api.dependencies import AppContainer
-from backend.api.routes import graphs, health, runs, skills
+from backend.api.routes import graphs, health, models, runs, skills
 from backend.config import get_settings
 from backend.db import EventRepository, RunRepository
 from backend.infra import postgres_checkpointer, postgres_sessionmaker
@@ -43,8 +44,12 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
         tools = ToolRegistry()
         await tools.load()
 
+        # get skills
+        skills = SkillRegistry()
+        skills.load()
+
         # get agentic graphs
-        graphs_registry = GraphRegistry(tools, checkpointer)
+        graphs_registry = GraphRegistry(tools, skills, checkpointer)
         graphs_registry.load()
 
         # get events Bus
@@ -57,11 +62,14 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
         app.state.container = AppContainer(
             db=db,
             tools=tools,
+            skills=skills,
             graphs=graphs_registry,
             bus=bus,
             runs=run_service,
         )
-        log.info("API ready: %d graph(s), %d tool(s)", len(graphs_registry.all()), len(tools.all()))
+        log.info(
+            "API ready: %d graph(s), %d tool(s), %d skill(s)", len(graphs_registry.all()), len(tools.all()), len(skills.all())
+        )
         try:
             yield
 
@@ -82,6 +90,7 @@ def create_app() -> FastAPI:
     )
     app.include_router(health.router, prefix="/api")
     app.include_router(graphs.router, prefix="/api")
+    app.include_router(models.router, prefix="/api")
     app.include_router(runs.router, prefix="/api")
     app.include_router(skills.router, prefix="/api")
     return app

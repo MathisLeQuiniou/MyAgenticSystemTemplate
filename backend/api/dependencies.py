@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from fastapi import Request
 
 from backend.agentic.graphs import GraphRegistry
+from backend.agentic.skills import SkillRegistry
 from backend.agentic.tools import ToolRegistry
 from backend.infra import DbSessionmaker
 from backend.services import EventBus, RunService
@@ -17,6 +18,7 @@ class AppContainer:
     """
     db: DbSessionmaker
     tools: ToolRegistry
+    skills: SkillRegistry
     graphs: GraphRegistry
     bus: EventBus
     runs: RunService

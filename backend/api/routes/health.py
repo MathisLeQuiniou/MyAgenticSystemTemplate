@@ -3,7 +3,6 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends
 from sqlalchemy import text
 
-from backend.agentic.skills import get_skill_registry
 from backend.api.dependencies import AppContainer, get_container
 from backend.infra import session_scope
 
@@ -23,5 +22,5 @@ async def health(c: AppContainer = Depends(get_container)) -> dict:
         "database": db_ok,
         "graphs": [g.name for g in c.graphs.all()],
         "tools": [t.name for t in c.tools.all()],
-        "skills": [s.name for s in get_skill_registry().all()],
+        "skills": [s.name for s in c.skills.all()],
     }

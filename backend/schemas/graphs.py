@@ -26,10 +26,3 @@ class GraphDescription(GraphSummary):
     nodes: list[GraphNode]
     edges: list[GraphEdge]
     mermaid: str | None = None
-
-
-class ModelProfileSummary(BaseModel):
-    name: str
-    provider: str
-    model: str
-    is_default: bool = False
