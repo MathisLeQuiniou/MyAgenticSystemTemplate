@@ -69,7 +69,7 @@ export function RunDetail({ runId, onRunChanged }: { runId: string; onRunChanged
   }, [spans, selectedSpan]);
 
   if (error) return <div className="error-box">{error}</div>;
-  if (!run) return <div className="empty">Chargement…</div>;
+  if (!run) return <div className="empty">Loading…</div>;
 
   const runEnd = [...events].reverse().find((e) => ["run_completed", "run_failed", "run_cancelled"].includes(e.type));
   const status = runEnd
@@ -94,13 +94,13 @@ export function RunDetail({ runId, onRunChanged }: { runId: string; onRunChanged
           {live && <span className="live-pill">LIVE</span>}
           <span>{formatDuration(duration)}</span>
           <span>{tokensTotal} tokens</span>
-          <span>{run.model_profile ?? "modèle par défaut"}</span>
+          <span>{run.model_profile ?? "default model"}</span>
           <span className="muted" title="thread_id">
             thread {run.thread_id.slice(0, 8)}
           </span>
           {status === "running" && (
             <button className="danger" onClick={() => api.cancelRun(run.id)}>
-              Annuler
+              Cancel
             </button>
           )}
         </div>
@@ -108,7 +108,7 @@ export function RunDetail({ runId, onRunChanged }: { runId: string; onRunChanged
 
       {(answer || errorMsg) && (
         <section className={`answer ${errorMsg && !answer ? "answer-error" : ""}`}>
-          <h4>{answer ? "Réponse finale" : "Erreur"}</h4>
+          <h4>{answer ? "Final answer" : "Error"}</h4>
           <div>{answer ?? errorMsg}</div>
         </section>
       )}
@@ -116,10 +116,10 @@ export function RunDetail({ runId, onRunChanged }: { runId: string; onRunChanged
       <div className="run-body">
         <section className="panel graph-panel">
           <div className="panel-title">
-            Chemin parcouru
+            Path taken
             <span className="muted">
-              {path.length} étape{path.length > 1 ? "s" : ""}
-              {selectedNode ? ` · filtre : ${selectedNode}` : " · clique un nœud pour filtrer"}
+              {path.length} step{path.length !== 1 ? "s" : ""}
+              {selectedNode ? ` · filter: ${selectedNode}` : " · click a node to filter"}
             </span>
           </div>
           {graph && (
@@ -137,7 +137,7 @@ export function RunDetail({ runId, onRunChanged }: { runId: string; onRunChanged
         <section className="panel timeline-panel">
           <div className="panel-title">
             Trace
-            <span className="muted">{events.length} événements</span>
+            <span className="muted">{events.length} events</span>
           </div>
           <Timeline
             spans={spans}

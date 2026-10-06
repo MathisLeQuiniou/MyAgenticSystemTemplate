@@ -1,3 +1,5 @@
+"""Alembic environment: runs the migrations of the application schema (async engine)."""
+
 from __future__ import annotations
 
 import asyncio

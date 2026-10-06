@@ -1,3 +1,5 @@
+"""Router agent: asks the LLM to pick one route and stores it in the state for a conditional edge."""
+
 from __future__ import annotations
 
 from typing import Any

@@ -1,22 +1,22 @@
 # MyAgenticSystemTemplate
 
-Point de départ pour construire des systèmes agentiques avec **LangGraph** :
-classes de base (agents, graphes, states, outils), API FastAPI, persistance
-PostgreSQL, serveurs d'outils MCP et un frontend React pour **observer chaque
-exécution** : chemin parcouru dans le graphe, appels LLM, appels d'outils,
-tokens, durées, erreurs, en direct.
+A starting point for building agentic systems with **LangGraph**: base classes
+(agents, graphs, states, tools), a FastAPI API, PostgreSQL persistence, MCP tool
+servers and a React frontend to **observe every run** live: path taken through
+the graph, LLM calls, tool calls, tokens, durations and errors.
 
 ```
-START → router ─research→ researcher [agent ⇄ tools] → writer → END
-               └─direct──────────────────────────────→ writer
+START → router ─research→ researcher [agent ⇄ tools (& skills)] → writer → END
+               └─direct─────────────────────────────────────────→ writer
 ```
 
 ## Quick Start
 
 ### Prerequisites
-Python ≥ 3.10, Node.js ≥ 20.19, Nginx >= 1.21.0, local PostgreSQL, a model supporting tool calling
-with [Ollama](https://ollama.com) (for instance `ollama pull qwen3:8b`) - or any 
-API openai compatible — or with the `fake` model to test without any LLM.
+Python ≥ 3.10, Node.js ≥ 20.19, Nginx ≥ 1.21.0, a local PostgreSQL, and a model
+that supports tool calling: through [Ollama](https://ollama.com) (for instance
+`ollama pull qwen3:8b`), any OpenAI-compatible API, or the `fake` model to test
+without any LLM.
 
 ### Backend setup
 
@@ -35,14 +35,14 @@ npm install
 npm run build
 ```
 
-### environement variables
+### Environment variables
 
 ```bash
 cp .env.example .env
 ```
-And fill-up all the environment variables
+Then fill in the environment variables.
 
-### Local Database initialization and/or migration
+### Local database initialization and/or migration
 
 ```bash
 python -m backend.db.init_db
@@ -54,56 +54,55 @@ python -m backend.db.init_db
 ./app.sh
 ```
 
-- Frontend (servi par nginx) : http://127.0.0.1 (port `NGINX_PORT`, 80 par défaut)
-- API (Swagger) : http://127.0.0.1:8000/docs
+- Frontend (served by nginx): http://127.0.0.1 (port `NGINX_PORT`, 80 by default)
+- API (Swagger): http://127.0.0.1:8000/docs
 
-Dans le frontend, choisis le graphe, le modèle (`fake` fonctionne hors-ligne),
-écris un message et lance. Le graphe s'anime en direct ; clique un nœud pour
-filtrer la trace, clique une ligne de la trace pour voir prompts, réponses,
-arguments et résultats d'outils.
+In the frontend, pick a graph and a model (`fake` works offline), write a
+message and run it. The graph animates live; click a node to filter the trace,
+click a trace row to see prompts, responses, tool arguments and tool results.
 
 ## Structure
 
 ```
 backend/
 ├── agentic/
-│   ├── agents/        BaseAgent, LLMAgent (boucle outils en sous-graphe), RouterAgent
+│   ├── agents/        BaseAgent, LLMAgent (tool loop as a subgraph), RouterAgent
 │   ├── graphs/        BaseGraph, graphs_registry (@register_graph), examples/
-│   ├── states/        BaseState (TypedDict LangGraph) + reducers
+│   ├── states/        BaseState (LangGraph TypedDict) + reducers
 │   ├── tools/         local_tools, tools_registry (ToolRegistry)
-│   └── skills/        SkillRegistry + skill_tools (outils load_skill / read_skill_file)
-├── tool_servers/      serveurs MCP (FastMCP) lancés par app.sh
-├── api/               FastAPI : routes graphs / runs / SSE
+│   └── skills/        SkillRegistry + skill_tools (load_skill / read_skill_file tools)
+├── tool_servers/      MCP servers (FastMCP) started by app.sh
+├── api/               FastAPI: graphs / runs / SSE routes
 ├── config/            settings (.env), models.yaml (+ loader llm_profiles.py), mcp_servers.yaml (+ loader mcp.py)
-├── db/                modèles SQLAlchemy, repositories, Alembic
-├── infra/             connexions externes : Postgres (sessionmaker), checkpointer LangGraph, client MCP,
-│                      llm/ (clients LLM par profil : OpenAI-compatible, Ollama, fake)
-├── schemas/           modèles Pydantic (API + événements)
-├── services/          RunService, EventBus (SSE), tracing (TraceCollector : astream_events → événements de trace)
-├── prompts/           prompts système en Markdown (identité des agents)
-├── skills/            skills au format SKILL.md (instructions chargées à la demande)
+├── db/                SQLAlchemy models, repositories, Alembic
+├── infra/             external connections: Postgres (sessionmaker), LangGraph checkpointer, MCP client,
+│                      llm/ (LLM clients per profile: OpenAI-compatible, Ollama, fake)
+├── schemas/           Pydantic models (API + events)
+├── services/          RunService, EventBus (SSE), tracing (TraceCollector: astream_events → trace events)
+├── prompts/           system prompts in Markdown (agents' identity)
+├── skills/            skills in SKILL.md format (instructions loaded on demand)
 └── utils/
-frontend/              React + TypeScript + Vite + React Flow (build servi depuis frontend/dist)
-nginx/                 nginx.conf.template (nginx.conf est généré par app.sh, non versionné)
-tmp/                   fichiers d'exécution : logs/, fichiers temporaires nginx (non versionné)
-app.sh                 lanceur unique
+frontend/              React + TypeScript + Vite + React Flow (build served from frontend/dist)
+nginx/                 nginx.conf.template (nginx.conf is generated by app.sh, not versioned)
+tmp/                   runtime files: logs/, nginx temporary files (not versioned)
+app.sh                 single launcher
 ```
 
 ## Concepts
 
 ### States — `backend/agentic/states`
-`BaseState` est un `TypedDict` LangGraph avec `messages` (reducer `add_messages`)
-et `context` (dict fusionné). Étends-le avec tes clés ; utilise les reducers
-(`append_list`, `merge_dict`, `increment`) quand plusieurs nœuds écrivent la même clé.
+`BaseState` is a LangGraph `TypedDict` with `messages` (`add_messages` reducer)
+and `context` (merged dict). Extend it with your own keys; use the reducers
+(`append_list`, `merge_dict`, `increment`) when several nodes write the same key.
 
 ### Agents — `backend/agentic/agents`
-| Classe | Rôle |
+| Class | Role |
 |---|---|
-| `BaseAgent` | Contrat minimal : `async run(state, config) -> update partiel`. `as_node()` le rend ajoutable au graphe. `get_model(config)` résout le modèle (override du run > profil de l'agent > défaut). `emit()` publie un événement custom dans la trace. |
-| `LLMAgent` | Prompt système (`prompts/<nom>.md` ou texte) + outils. Avec outils, c'est un **sous-graphe** `agent ⇄ tools` : chaque appel d'outil devient une étape visible. `max_iterations` borne la boucle. Surcharge `format_prompt(state)` pour injecter du state. |
-| `RouterAgent` | Demande au LLM de choisir une route, parse la réponse avec tolérance (repli sur `default`), écrit `state["route"]`. À brancher avec `add_conditional_edges(router.name, router.route, {...})`. |
+| `BaseAgent` | Minimal contract: `async run(state, config) -> partial update`. `as_node()` makes it addable to a graph. `get_model(config)` resolves the model (run override > agent profile > default). `emit()` publishes a custom event to the trace. |
+| `LLMAgent` | System prompt (`prompts/<name>.md` or plain text) + tools. With tools, it is a **subgraph** `agent ⇄ tools`: every tool call becomes a visible step. `max_iterations` bounds the loop. Override `format_prompt(state)` to inject state values. |
+| `RouterAgent` | Asks the LLM to choose a route, parses the answer leniently (falls back to `default`), writes `state["route"]`. Wire it with `add_conditional_edges(router.name, router.route, {...})`. |
 
-### Graphes — `backend/agentic/graphs`
+### Graphs — `backend/agentic/graphs`
 ```python
 @register_graph
 class MyGraph(BaseGraph):
@@ -119,96 +118,98 @@ class MyGraph(BaseGraph):
         builder.add_edge(agent.name, END)
         return builder
 ```
-Dépose le fichier n'importe où sous `backend/agentic/graphs/` : il est découvert
-automatiquement, compilé avec le checkpointer Postgres, exposé par l'API et
-dessiné par le frontend. Surcharge `build_input()` / `build_output()` si ton
-graphe attend autre chose qu'un message.
+Drop the file anywhere under `backend/agentic/graphs/`: it is discovered
+automatically, compiled with the Postgres checkpointer, exposed by the API and
+drawn by the frontend. Override `build_input()` / `build_output()` if your
+graph expects something other than a message.
 
-### Outils — `backend/agentic/tools` et `backend/tool_servers`
-- **Outils locaux** : fonctions `@tool` dans `tools/local_tools.py`.
-- **Serveurs MCP** : déclarés dans `config/mcp_servers.yaml`. Ceux qui ont un
-  `module` sont lancés par `app.sh` (exemple : `tool_servers/demo_server.py`,
-  `calculate` + `search_knowledge_base`) ; les autres (externes, stdio…) sont
-  seulement connectés. Un serveur indisponible est ignoré avec un warning.
-- Dans un graphe : `self.tools.get("nom1", "nom2")` ou `self.tools.from_servers("demo")`.
+### Tools — `backend/agentic/tools` and `backend/tool_servers`
+- **Local tools**: `@tool` functions in `tools/local_tools.py`.
+- **MCP servers**: declared in `config/mcp_servers.yaml`. Those with a `module`
+  are started by `app.sh` (example: `tool_servers/demo_server.py`, with
+  `calculate` + `search_knowledge_base`); the others (external, stdio…) are only
+  connected to. An unavailable server is skipped with a warning.
+- In a graph: `self.tools.get("name1", "name2")` or `self.tools.from_servers("demo")`.
 
 ### Skills — `backend/skills`
-Une skill est un dossier au format Anthropic *Agent Skills* :
-`<nom>/SKILL.md` (front matter `name` + `description`, puis les instructions)
-et des fichiers annexes facultatifs (`references/`, `templates/`…).
+A skill is a folder in the Anthropic *Agent Skills* format:
+`<name>/SKILL.md` (front matter `name` + `description`, then the instructions)
+and optional extra files (`references/`, `templates/`…).
 
 ```python
-# dans BaseGraph.build(), comme self.tools pour les outils
-LLMAgent("researcher", prompt="researcher", tools=[...], skills=self.skills.get_many("financial-calculations"))  # ou get_many("*")
+# in BaseGraph.build(), like self.tools for tools
+LLMAgent("researcher", prompt="researcher", tools=[...], skills=self.skills.get_many("financial-calculations"))  # or get_many("*")
 ```
-L'agent reçoit dans son prompt système le **catalogue** (nom + description) et
-deux outils : `load_skill(name)` pour lire les instructions, `read_skill_file(name, path)`
-pour ouvrir une annexe (accès limité au dossier de la skill). Chaque chargement
-apparaît dans la trace avec un badge **SKILL**. Liste via `GET /api/skills`.
+The agent receives the **catalog** (name + description) in its system prompt
+and two tools: `load_skill(name)` to read the instructions, and
+`read_skill_file(name, path)` to open a bundled file (access limited to the
+skill folder). Each load shows up in the trace with a **SKILL** badge. List
+skills with `GET /api/skills`.
 
-**Prompt ou skill ?** Le prompt dit *qui* est l'agent et est toujours chargé ;
-une skill dit *comment* faire une tâche précise, n'est chargée qu'au besoin et
-peut être partagée entre agents. Ne recopie pas le contenu d'une skill dans un prompt.
-Les scripts éventuels d'une skill ne sont pas exécutés : expose ce code comme outil
-(local ou serveur MCP). Exemple fourni : `financial-calculations` (TVA, intérêts,
-mensualités), branchée sur le `researcher`.
+**Prompt or skill?** The prompt says *who* the agent is and is always loaded;
+a skill says *how* to do one specific task, is loaded only when needed and can
+be shared between agents. Don't copy a skill's content into a prompt.
+Scripts bundled with a skill are not executed: expose that code as a tool
+(local or MCP server). Provided example: `financial-calculations` (VAT,
+interest, monthly payments), attached to the `researcher`.
 
 ### LLM — `backend/config/models.yaml`
-Un **profil** = un modèle joignable. Fournisseurs : `openai` (toute API
-compatible OpenAI : OpenAI, passerelles internes, vLLM, Ollama `/v1`),
-`ollama` (API native), `fake` (déterministe, pour tests/démo).
+A **profile** = one reachable model. Providers: `openai` (any OpenAI-compatible
+API: OpenAI, internal gateways, vLLM, Ollama `/v1`), `ollama` (native API),
+`fake` (deterministic, for tests/demos).
 
-Pour l'**API interne sécurisée** de ton client, le profil `internal` prévoit :
-`base_url`, clé via variable d'environnement, `default_headers`, `ca_bundle`
-(CA d'entreprise), `verify_ssl`, `proxy`, `timeout`, `max_retries`. Les valeurs
-`${VAR}` sont lues depuis l'environnement (`.env`).
+For a **secured internal API**, the `internal` profile provides: `base_url`,
+key read from an environment variable, `default_headers`, `ca_bundle`
+(corporate CA), `verify_ssl`, `proxy`, `timeout`, `max_retries`. `${VAR}`
+values are read from the environment (`.env`).
 
-Le profil par défaut se change dans `models.yaml` (`default:`) ou via
-`DEFAULT_MODEL_PROFILE`, et chaque run peut en choisir un autre.
+The default profile is set in `models.yaml` (`default:`) or through
+`DEFAULT_MODEL_PROFILE`, and each run can choose another one.
 
-### Observabilité
-`TraceCollector` filtre le flux `astream_events` de LangGraph pour ne garder que :
-`node_*`, `llm_*` (messages, sortie, usage), `tool_*` (arguments, résultat),
-`custom` et `llm_token` (live uniquement). Chaque événement porte un `node_path`
-(`researcher:tools`) qui correspond aux ids de `BaseGraph.describe()`, et un
-`parent_span_id` pour reconstruire l'arbre.
+### Observability
+`TraceCollector` filters LangGraph's `astream_events` stream and keeps only:
+`node_*`, `llm_*` (messages, output, usage), `tool_*` (arguments, result),
+`custom` and `llm_token` (live only). Each event carries a `node_path`
+(`researcher:tools`) matching the ids of `BaseGraph.describe()`, and a
+`parent_span_id` to rebuild the tree.
 
-`RunService` exécute le graphe en tâche de fond, persiste les événements
-(`app.events`) et les publie sur l'`EventBus` ; `GET /api/runs/{id}/stream`
-rejoue l'historique puis diffuse en direct (SSE).
+`RunService` runs the graph as a background task, persists the events
+(`app.events`) and publishes them on the `EventBus`; `GET /api/runs/{id}/stream`
+replays the history, then streams live (SSE).
 
-### Base de données
-| Schéma | Contenu | Géré par |
+### Database
+| Schema | Content | Managed by |
 |---|---|---|
 | `app` | `runs`, `events` | SQLAlchemy + Alembic |
-| `langgraph` | checkpoints (state par thread) | `AsyncPostgresSaver.setup()` |
+| `langgraph` | checkpoints (state per thread) | `AsyncPostgresSaver.setup()` |
 
-Nouvelle migration après modification de `backend/db/models.py` :
+New migration after changing `backend/db/models.py`:
 ```bash
-.venv/bin/alembic -c backend/db/alembic.ini revision --autogenerate -m "ma modif"
+.venv/bin/alembic -c backend/db/alembic.ini revision --autogenerate -m "my change"
 python -m backend.db.init_db
 ```
 
 ## API
 
-| Méthode | Route | Description |
+| Method | Route | Description |
 |---|---|---|
-| GET | `/api/health` | état DB, graphes, outils |
-| GET | `/api/graphs` · `/api/graphs/{name}` | liste · structure (nœuds, arêtes, mermaid) |
-| GET | `/api/models` | profils LLM |
-| GET | `/api/skills` · `/api/skills/{name}` | skills disponibles · contenu |
+| GET | `/api/health` | DB status, graphs, tools |
+| GET | `/api/graphs` · `/api/graphs/{name}` | list · structure (nodes, edges, mermaid) |
+| GET | `/api/models` | LLM profiles |
+| GET | `/api/skills` · `/api/skills/{name}` | available skills · content |
 | POST | `/api/runs` | `{graph, input: {message}, model_profile?, thread_id?}` |
-| GET | `/api/runs` · `/api/runs/{id}` | liste · détail |
-| GET | `/api/runs/{id}/events` | trace persistée |
-| GET | `/api/runs/{id}/stream` | trace en SSE (replay + live) |
-| GET | `/api/runs/{id}/state` | dernier état checkpointé du thread |
-| POST | `/api/runs/{id}/cancel` | annule un run en cours |
+| GET | `/api/runs` · `/api/runs/{id}` | list · detail |
+| GET | `/api/runs/{id}/events` | persisted trace |
+| GET | `/api/runs/{id}/stream` | SSE trace (replay + live) |
+| GET | `/api/runs/{id}/state` | latest checkpointed state of the thread |
+| POST | `/api/runs/{id}/cancel` | cancel a running run |
 
-Réutiliser un `thread_id` continue la conversation (historique restauré par le
-checkpointer) ; le frontend le propose via « Continuer le thread du run affiché ».
+Reusing a `thread_id` continues the conversation (history restored by the
+checkpointer); the frontend offers it through "Continue the thread of the
+displayed run".
 
-## Pistes d'évolution
-- Human-in-the-loop avec `interrupt()` de LangGraph + reprise via l'API.
-- EventBus multi-process (Redis pub/sub ou Postgres LISTEN/NOTIFY) pour plusieurs workers.
-- Export vers Langfuse / OpenTelemetry en plus de la trace maison.
-- Authentification de l'API et du frontend.
+## Roadmap ideas
+- Human-in-the-loop with LangGraph's `interrupt()` + resume through the API.
+- Multi-process EventBus (Redis pub/sub or Postgres LISTEN/NOTIFY) for several workers.
+- Export to Langfuse / OpenTelemetry in addition to the built-in trace.
+- Authentication for the API and the frontend.

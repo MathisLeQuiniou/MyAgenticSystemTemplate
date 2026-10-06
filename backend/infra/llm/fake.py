@@ -73,6 +73,7 @@ class FakeToolCallingChatModel(BaseChatModel):
                 args[name] = text
         return args
 
+    # Stop words ignored when matching a question to a skill (English + French questions).
     _STOP = {"the", "for", "any", "use", "and", "with", "what", "how", "une", "des", "les", "est", "quel", "quelle"}
 
     def _words(self, text: str) -> set[str]:

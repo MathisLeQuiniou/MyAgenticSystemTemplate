@@ -10,7 +10,7 @@ from langchain_mcp_adapters.client import MultiServerMCPClient
 from backend.config import LAUNCH_KEYS, load_mcp_config
 from backend.utils import get_logger
 
-log = get_logger(__name__)
+logger = get_logger(__name__)
 
 class MCPToolProvider:
     """Connects to the configured MCP servers and exposes their tools as LangChain tools.
@@ -31,9 +31,9 @@ class MCPToolProvider:
             try:
                 client = MultiServerMCPClient({name: self._connection(cfg)})
                 self._tools[name] = await client.get_tools()
-                log.info("MCP server %s: %d tools (%s)", name, len(self._tools[name]), ", ".join(t.name for t in self._tools[name]))
+                logger.info("MCP server %s: %d tools (%s)", name, len(self._tools[name]), ", ".join(t.name for t in self._tools[name]))
             except Exception as exc:  # noqa: BLE001
-                log.warning("MCP server %s unavailable (%s). Its tools are disabled.", name, _root_cause(exc))
+                logger.warning("MCP server %s unavailable (%s). Its tools are disabled.", name, _root_cause(exc))
                 self._tools[name] = []
 
     def tools(self, *servers: str) -> list[BaseTool]:

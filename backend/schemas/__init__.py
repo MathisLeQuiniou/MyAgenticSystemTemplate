@@ -1,3 +1,5 @@
+"""Pydantic schemas shared by the API, the services and the trace events."""
+
 from backend.schemas.events import TERMINAL_EVENT_TYPES, EventType, TraceEvent
 from backend.schemas.graphs import GraphDescription, GraphEdge, GraphNode, GraphSummary
 from backend.schemas.llm import ModelProfileSummary

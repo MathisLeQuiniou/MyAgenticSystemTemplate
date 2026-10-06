@@ -1,3 +1,5 @@
+"""Small generic helpers: logging, serialization, time and YAML loading."""
+
 from backend.utils.logging import get_logger, setup_logging
 from backend.utils.serialization import message_to_dict, to_jsonable
 from backend.utils.time import utcnow

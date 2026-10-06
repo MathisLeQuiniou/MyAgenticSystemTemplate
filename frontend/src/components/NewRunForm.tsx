@@ -55,7 +55,7 @@ export function NewRunForm({ onCreated, currentThread }: Props) {
     <form className="new-run" onSubmit={submit}>
       <div className="row">
         <label>
-          Graphe
+          Graph
           <select value={graph} onChange={(e) => setGraph(e.target.value)}>
             {graphs.map((g) => (
               <option key={g.name} value={g.name} title={g.description}>
@@ -65,9 +65,9 @@ export function NewRunForm({ onCreated, currentThread }: Props) {
           </select>
         </label>
         <label>
-          Modèle
+          Model
           <select value={model} onChange={(e) => setModel(e.target.value)}>
-            <option value="">défaut{defaultModel ? ` (${defaultModel.name})` : ""}</option>
+            <option value="">default{defaultModel ? ` (${defaultModel.name})` : ""}</option>
             {models.map((m) => (
               <option key={m.name} value={m.name}>
                 {m.name} · {m.model || m.provider}
@@ -77,7 +77,7 @@ export function NewRunForm({ onCreated, currentThread }: Props) {
         </label>
       </div>
       <textarea
-        placeholder="Message… (Ctrl+Entrée pour lancer)"
+        placeholder="Message… (Ctrl+Enter to run)"
         value={message}
         rows={3}
         onChange={(e) => setMessage(e.target.value)}
@@ -86,17 +86,17 @@ export function NewRunForm({ onCreated, currentThread }: Props) {
         }}
       />
       <div className="row between">
-        <label className="checkbox" title={currentThread ?? "Sélectionne un run pour reprendre son thread"}>
+        <label className="checkbox" title={currentThread ?? "Select a run to continue its thread"}>
           <input
             type="checkbox"
             disabled={!currentThread}
             checked={continueThread && !!currentThread}
             onChange={(e) => setContinueThread(e.target.checked)}
           />
-          Continuer le thread du run affiché
+          Continue the thread of the displayed run
         </label>
         <button type="submit" disabled={busy || !message.trim() || !graph}>
-          {busy ? "…" : "Lancer"}
+          {busy ? "…" : "Run"}
         </button>
       </div>
       {error && <div className="error-box">{error}</div>}

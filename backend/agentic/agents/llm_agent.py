@@ -1,3 +1,5 @@
+"""LLM agent: a system prompt plus optional tools and skills, run as a ReAct tool loop."""
+
 from __future__ import annotations
 
 from collections.abc import Sequence

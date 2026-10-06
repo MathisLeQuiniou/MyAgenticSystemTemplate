@@ -20,7 +20,7 @@ import time
 from backend.config import ROOT_DIR, load_mcp_config
 from backend.utils import get_logger, setup_logging
 
-log = get_logger("tool_servers")
+logger = get_logger("tool_servers")
 
 READY_TIMEOUT = 10.0
 READY_FILE = ROOT_DIR / "tmp" / "mcp_servers.ready"  # waited for by app.sh
@@ -72,7 +72,7 @@ def main() -> None:
             str(port),
         ]
 
-        log.info(
+        logger.info(
             "Starting MCP server %s on %s:%s",
             name,
             host,
@@ -83,7 +83,7 @@ def main() -> None:
         procs.append((name, cfg, proc))
 
     if not procs:
-        log.info("No MCP server to start.")
+        logger.info("No MCP server to start.")
         READY_FILE.touch()
         return
 
@@ -110,7 +110,7 @@ def main() -> None:
         host = str(cfg.get("host", "127.0.0.1"))
         port = int(cfg.get("port", 8001))
 
-        log.info(
+        logger.info(
             "Waiting for MCP server %s on %s:%s...",
             name,
             host,
@@ -118,7 +118,7 @@ def main() -> None:
         )
 
         if proc.poll() is not None:
-            log.error(
+            logger.error(
                 "MCP server %s exited with code %s before becoming ready.",
                 name,
                 proc.returncode,
@@ -126,7 +126,7 @@ def main() -> None:
             stop(exit_code=1)
 
         if not wait_for_port(host, port):
-            log.error(
+            logger.error(
                 "MCP server %s did not become ready within %.1f seconds.",
                 name,
                 READY_TIMEOUT,
@@ -134,25 +134,25 @@ def main() -> None:
             stop(exit_code=1)
 
         if proc.poll() is not None:
-            log.error(
+            logger.error(
                 "MCP server %s exited with code %s after becoming ready.",
                 name,
                 proc.returncode,
             )
             stop(exit_code=1)
 
-        log.info("MCP server %s is ready.", name)
+        logger.info("MCP server %s is ready.", name)
 
     # All MCP servers are ready.
     READY_FILE.touch()
 
-    log.info("All MCP servers are ready.")
+    logger.info("All MCP servers are ready.")
 
     # Keep supervising the child processes.
     while True:
         for name, _, proc in procs:
             if proc.poll() is not None:
-                log.error(
+                logger.error(
                     "MCP server %s exited with code %s.",
                     name,
                     proc.returncode,

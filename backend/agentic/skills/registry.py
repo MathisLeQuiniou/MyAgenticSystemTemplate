@@ -24,7 +24,7 @@ import yaml
 from backend.config import get_settings
 from backend.utils import get_logger
 
-log = get_logger(__name__)
+logger = get_logger(__name__)
 
 SKILL_FILE = "SKILL.md"
 _FRONT_MATTER = re.compile(r"^---\s*\n(.*?)\n---\s*\n?(.*)$", re.DOTALL)
@@ -93,9 +93,9 @@ class SkillRegistry:
                 skill = parse_skill(folder)
                 self._skills[skill.name] = skill
             except Exception as exc:  # noqa: BLE001
-                log.warning("Skipping skill '%s': %s", folder.name, exc)
+                logger.warning("Skipping skill '%s': %s", folder.name, exc)
         if self._skills:
-            log.info("Skills loaded: %s", ", ".join(self._skills))
+            logger.info("Skills loaded: %s", ", ".join(self._skills))
 
     def get(self, name: str) -> Skill:
         try:

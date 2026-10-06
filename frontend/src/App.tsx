@@ -30,14 +30,14 @@ export default function App() {
         </div>
         <NewRunForm onCreated={onCreated} currentThread={currentThread} />
         <div className="sidebar-title">Runs</div>
-        {error && <div className="error-box">API injoignable : {error}</div>}
+        {error && <div className="error-box">API unreachable: {error}</div>}
         <RunList runs={runs ?? []} selected={runId} onSelect={selectRun} />
       </aside>
       <main className="main">
         {runId ? (
           <RunDetail key={runId} runId={runId} onRunChanged={onRunChanged} />
         ) : (
-          <div className="empty big">Lance un run ou sélectionne-en un dans la liste.</div>
+          <div className="empty big">Start a run or select one from the list.</div>
         )}
       </main>
     </div>

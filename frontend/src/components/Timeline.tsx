@@ -73,7 +73,7 @@ function SpanRow({ span, depth, props }: { span: Span; depth: number; props: Pro
 
 export function Timeline(props: Props) {
   const roots = props.spans.filter((s) => matchesFilter(s, props.nodeFilter));
-  if (roots.length === 0) return <div className="empty">Aucune étape pour l'instant.</div>;
+  if (roots.length === 0) return <div className="empty">No steps yet.</div>;
   return (
     <div className="timeline">
       {roots.map((s) => (

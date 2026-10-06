@@ -1,3 +1,5 @@
+"""Logging setup: one stdout handler for the whole app, quiet third-party loggers."""
+
 from __future__ import annotations
 
 import logging

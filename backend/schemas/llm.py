@@ -1,3 +1,5 @@
+"""Schemas exposing the LLM profiles through the API."""
+
 from __future__ import annotations
 
 from pydantic import BaseModel

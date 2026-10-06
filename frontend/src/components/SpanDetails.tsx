@@ -20,15 +20,15 @@ export function SpanDetails({ span, onClose }: { span: Span; onClose: () => void
       </div>
       <div className="details-meta">
         {span.kind !== "custom" && <StatusBadge status={span.status === "running" ? "running" : span.status} />}
-        <span>début {formatTime(span.start.timestamp)}</span>
-        <span>durée {formatDuration(span.durationMs)}</span>
-        {span.nodePath && <span>nœud {span.nodePath}</span>}
+        <span>start {formatTime(span.start.timestamp)}</span>
+        <span>duration {formatDuration(span.durationMs)}</span>
+        {span.nodePath && <span>node {span.nodePath}</span>}
       </div>
 
       {span.kind === "llm" && (
         <>
           <div className="details-meta">
-            <span>modèle {start.model}</span>
+            <span>model {start.model}</span>
             {start.provider && <span>provider {start.provider}</span>}
             {end.usage && (
               <span>
@@ -36,11 +36,11 @@ export function SpanDetails({ span, onClose }: { span: Span; onClose: () => void
               </span>
             )}
           </div>
-          <h4>Entrée</h4>
+          <h4>Input</h4>
           <Messages messages={start.messages ?? []} />
           {end.output && (
             <>
-              <h4>Sortie</h4>
+              <h4>Output</h4>
               <Messages messages={[end.output]} />
             </>
           )}
@@ -51,15 +51,15 @@ export function SpanDetails({ span, onClose }: { span: Span; onClose: () => void
         <>
           <h4>Arguments</h4>
           <pre>{JSON.stringify(start.input, null, 2)}</pre>
-          <h4>Résultat</h4>
+          <h4>Result</h4>
           <pre>{contentToText(end.output)}</pre>
         </>
       )}
 
       {span.kind === "node" && (
         <>
-          <JsonView label="Entrée (state)" value={start.input} />
-          <JsonView label="Sortie (mise à jour du state)" value={end.output} open />
+          <JsonView label="Input (state)" value={start.input} />
+          <JsonView label="Output (state update)" value={end.output} open />
         </>
       )}
 

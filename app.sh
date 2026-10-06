@@ -12,10 +12,10 @@ if [ -f .env ]; then
   . ./.env
   set +a
 fi
-HOST="${HOST:-127.0.0.1}"
+API_HOST="${API_HOST:-127.0.0.1}"
 API_PORT="${API_PORT:-8000}"
 NGINX_PORT="${NGINX_PORT:-80}"
-export ROOT HOST API_PORT NGINX_PORT
+export ROOT API_HOST API_PORT NGINX_PORT
 export PYTHONUNBUFFERED=1
 export PYTHONPATH="$ROOT${PYTHONPATH:+:$PYTHONPATH}"
 
@@ -108,18 +108,18 @@ cmd_start() {
 
   info "starting backend api.."
   python -m uvicorn backend.api.main:app \
-    --host "$HOST" \
+    --host "$API_HOST" \
     --port "$API_PORT" \
     &> "$LOGS_DIR/backend.log" &
   PIDS+=($!)
-  wait_for_port "$HOST" "$API_PORT" "API"
+  wait_for_port "$API_HOST" "$API_PORT" "API"
   info "logs available at $LOGS_DIR/backend.log"
   info "starting backend api complete."
 
 
   info "starting nginx server.."
   # create nginx.conf from nginx.conf.template
-  envsubst '${ROOT} ${HOST} ${API_PORT} ${NGINX_PORT}' \
+  envsubst '${ROOT} ${API_HOST} ${API_PORT} ${NGINX_PORT}' \
     < "$ROOT/nginx/nginx.conf.template" \
     > "$ROOT/nginx/nginx.conf"
 
@@ -133,8 +133,8 @@ cmd_start() {
   info "logs available at $LOGS_DIR/nginx.log (see also access.log & error.log)"
   info "starting nginx server complete."
   echo ""
-  info "✓ Frontend  http://$HOST:$NGINX_PORT/"
-  info "✓ API       http://$HOST:$API_PORT/docs$"
+  info "✓ Frontend  http://$API_HOST:$NGINX_PORT/"
+  info "✓ API       http://$API_HOST:$API_PORT/docs"
   echo ""
   info "  Ctrl+C to stop everything."
   wait

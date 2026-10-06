@@ -1,3 +1,5 @@
+"""Skill routes: list skills and read their instructions."""
+
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException

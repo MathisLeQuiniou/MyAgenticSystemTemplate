@@ -1,3 +1,5 @@
+"""YAML loading with `${VAR}` / `${VAR:-default}` environment variable expansion."""
+
 from __future__ import annotations
 
 import os

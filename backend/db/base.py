@@ -1,3 +1,5 @@
+"""SQLAlchemy declarative base, bound to the application schema with a naming convention."""
+
 from __future__ import annotations
 
 from sqlalchemy import MetaData

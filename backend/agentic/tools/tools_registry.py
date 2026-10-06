@@ -1,3 +1,5 @@
+"""Tool registry: single place where graphs get their tools (local + MCP) by name."""
+
 from __future__ import annotations
 
 from langchain_core.tools import BaseTool
@@ -6,7 +8,7 @@ from backend.agentic.tools.local_tools import LOCAL_TOOLS
 from backend.infra.mcp_client import MCPToolProvider
 from backend.utils import get_logger
 
-log = get_logger(__name__)
+logger = get_logger(__name__)
 
 
 class ToolRegistry:
@@ -34,7 +36,7 @@ class ToolRegistry:
             msg = f"Tools not available: {', '.join(missing)} (unknown name or MCP server unavailable)"
             if required:
                 raise LookupError(msg)
-            log.warning(msg)
+            logger.warning(msg)
         return [index[n] for n in names if n in index]
 
     def from_servers(self, *servers: str) -> list[BaseTool]:

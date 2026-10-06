@@ -1,3 +1,5 @@
+"""Model routes: list the LLM profiles available for runs."""
+
 from __future__ import annotations
 
 from fastapi import APIRouter

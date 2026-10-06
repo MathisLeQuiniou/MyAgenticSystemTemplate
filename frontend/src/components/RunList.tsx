@@ -9,7 +9,7 @@ interface Props {
 }
 
 export function RunList({ runs, selected, onSelect }: Props) {
-  if (runs.length === 0) return <div className="empty">Aucun run pour l'instant.</div>;
+  if (runs.length === 0) return <div className="empty">No runs yet.</div>;
   return (
     <ul className="run-list">
       {runs.map((r) => {

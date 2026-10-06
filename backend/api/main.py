@@ -25,7 +25,7 @@ from backend.utils import get_logger, setup_logging
 
 settings = get_settings()
 setup_logging(settings.log_level)
-log = get_logger(__name__)
+logger = get_logger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
@@ -38,7 +38,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
 
         interrupted = await runs_repo.mark_interrupted()
         if interrupted:
-            log.warning("%d run(s) were interrupted by the last shutdown", interrupted)
+            logger.warning("%d run(s) were interrupted by the last shutdown", interrupted)
 
         # get tools
         tools = ToolRegistry()
@@ -67,7 +67,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
             bus=bus,
             runs=run_service,
         )
-        log.info(
+        logger.info(
             "API ready: %d graph(s), %d tool(s), %d skill(s)", len(graphs_registry.all()), len(tools.all()), len(skills.all())
         )
         try:

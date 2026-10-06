@@ -1,3 +1,5 @@
+"""Dependency injection: the container of long-lived services shared by the routes."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass

@@ -15,7 +15,7 @@ from backend.services.event_bus import EventBus
 from backend.services.tracing import TraceCollector
 from backend.utils import get_logger, to_jsonable, utcnow
 
-log = get_logger(__name__)
+logger = get_logger(__name__)
 
 
 class RunService:
@@ -113,7 +113,7 @@ class RunService:
             if "Connect" in type(exc).__name__:
                 profile = run.model_profile or "default"
                 message += f" (is the LLM endpoint of model profile '{profile}' reachable? see backend/config/models.yaml)"
-            log.exception("Run %s failed", run.id)
+            logger.exception("Run %s failed", run.id)
             await self._finish_with_error(
                 run, collector, emit, run_event, EventType.RUN_FAILED, "failed", message, traceback.format_exc()
             )
@@ -125,4 +125,4 @@ class RunService:
             await emit([*collector.close_open_spans(message), run_event(type_, {"error": message, "traceback": tb, "total_tokens": collector.total_tokens})])
             await self.runs.update(run.id, status=status, error=message, total_tokens=collector.total_tokens, finished_at=utcnow())
         except Exception:  # noqa: BLE001
-            log.exception("Could not record the end of run %s", run.id)
+            logger.exception("Could not record the end of run %s", run.id)

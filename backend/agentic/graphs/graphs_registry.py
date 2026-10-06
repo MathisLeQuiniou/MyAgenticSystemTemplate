@@ -1,3 +1,5 @@
+"""Graph registry: `@register_graph` decorator, auto-discovery and compiled graph instances."""
+
 from __future__ import annotations
 
 import importlib
@@ -10,7 +12,7 @@ from backend.agentic.skills import SkillRegistry
 from backend.agentic.tools import ToolRegistry
 from backend.utils import get_logger
 
-log = get_logger(__name__)
+logger = get_logger(__name__)
 
 _GRAPH_CLASSES: dict[str, type[BaseGraph]] = {}
 
@@ -48,9 +50,9 @@ class GraphRegistry:
                 graph = cls(self.tools, self.skills)
                 graph.compile(self.checkpointer)
                 self._graphs[name] = graph
-                log.info("Graph %s compiled", name)
+                logger.info("Graph %s compiled", name)
             except Exception:
-                log.exception("Failed to compile graph %s", name)
+                logger.exception("Failed to compile graph %s", name)
 
     def get(self, name: str) -> BaseGraph:
         try:

@@ -1,13 +1,13 @@
 import type { RunStatus } from "../api/types";
 
 const LABELS: Record<string, string> = {
-  pending: "En attente",
-  running: "En cours",
-  completed: "Terminé",
-  failed: "Échec",
-  cancelled: "Annulé",
+  pending: "Pending",
+  running: "Running",
+  completed: "Completed",
+  failed: "Failed",
+  cancelled: "Cancelled",
   ok: "OK",
-  error: "Erreur",
+  error: "Error",
 };
 
 export function StatusBadge({ status }: { status: RunStatus | "ok" | "error" }) {

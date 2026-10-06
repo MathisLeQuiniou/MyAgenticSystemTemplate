@@ -1,3 +1,5 @@
+"""Health route: database status and loaded graphs, tools and skills."""
+
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends

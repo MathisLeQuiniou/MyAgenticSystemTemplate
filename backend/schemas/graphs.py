@@ -1,3 +1,5 @@
+"""Schemas describing a graph (nodes, edges, mermaid) for the frontend."""
+
 from __future__ import annotations
 
 from pydantic import BaseModel

@@ -1,3 +1,5 @@
+"""Graph routes: list registered graphs and describe their structure."""
+
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException
