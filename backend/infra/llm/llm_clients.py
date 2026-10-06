@@ -1,4 +1,8 @@
-"""Chat model factory: one entry point for every LLM used by the agents."""
+"""LLM clients: one entry point (`get_chat_model`) for every chat model used by the agents.
+
+Builds the LangChain client of a model profile (HTTP client, TLS, proxy, retries...).
+Profiles are loaded by `backend.config.models`.
+"""
 
 from __future__ import annotations
 
@@ -9,7 +13,7 @@ import httpx
 from langchain_core.language_models import BaseChatModel
 from langchain_openai import ChatOpenAI
 
-from backend.agentic.llm.profiles import ModelProfile, get_profile
+from backend.config import ModelProfile, get_profile
 
 
 def _resolve_api_key(profile: ModelProfile) -> str | None:
@@ -68,7 +72,7 @@ def _build_ollama(profile: ModelProfile) -> BaseChatModel:
 
 
 def _build_fake(profile: ModelProfile) -> BaseChatModel:
-    from backend.agentic.llm.fake import FakeToolCallingChatModel
+    from backend.infra.llm.fake import FakeToolCallingChatModel
 
     return FakeToolCallingChatModel(model_name=profile.model)
 

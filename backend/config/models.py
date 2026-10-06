@@ -1,3 +1,9 @@
+"""Load the model profiles (backend/config/models.yaml).
+
+Shared by the LLM clients (`backend/infra/llm/llm_clients.py`), the run service
+(profile validation) and the API (`GET /models`).
+"""
+
 from __future__ import annotations
 
 from functools import lru_cache
@@ -5,7 +11,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
-from backend.config import get_settings
+from backend.config.settings import get_settings
 from backend.utils import load_yaml
 
 

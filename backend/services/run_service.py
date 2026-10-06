@@ -8,12 +8,11 @@ import uuid
 from typing import Any
 
 from backend.agentic.graphs import GraphRegistry
-from backend.agentic.llm import get_profile
-from backend.agentic.tracing import TraceCollector
-from backend.config import get_settings
+from backend.config import get_profile, get_settings
 from backend.db import EventRepository, RunRepository
 from backend.schemas import EventType, RunCreate, RunRead, TraceEvent
 from backend.services.event_bus import EventBus
+from backend.services.tracing import TraceCollector
 from backend.utils import get_logger, to_jsonable, utcnow
 
 log = get_logger(__name__)

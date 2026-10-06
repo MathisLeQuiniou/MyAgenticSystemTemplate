@@ -15,7 +15,7 @@ from langchain_core.callbacks.manager import adispatch_custom_event
 from langchain_core.language_models import BaseChatModel
 from langchain_core.runnables import RunnableConfig
 
-from backend.agentic.llm import get_chat_model
+from backend.infra.llm import get_chat_model
 from backend.config import PROMPTS_DIR
 
 
@@ -56,7 +56,12 @@ class BaseAgent(ABC):
 
     @staticmethod
     async def emit(name: str, data: dict[str, Any], config: RunnableConfig | None = None) -> None:
-        """Emit a custom trace event (shown in the run timeline)."""
+        """Emit a custom trace event (shown in the run timeline).
+
+        Dispatched as a LangChain custom event, then turned into a `custom` TraceEvent
+        by `backend.services.tracing.TraceCollector`, attached to the open node span.
+        Pass the node's `config` so the event keeps its LangGraph namespace (node_path).
+        """
         await adispatch_custom_event(name, data, config=config)
 
     @staticmethod

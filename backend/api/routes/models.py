@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
-from backend.agentic.llm import load_models_config
+from backend.config import load_models_config
 from backend.schemas import ModelProfileSummary
 
 router = APIRouter(tags=["models"])

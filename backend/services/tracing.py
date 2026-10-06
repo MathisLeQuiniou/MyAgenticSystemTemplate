@@ -11,6 +11,10 @@ The collector keeps what matters to understand a run:
 
 Each event carries `node_path` (e.g. "researcher:tools") matching the node ids of
 `BaseGraph.describe()`, plus `span_id` / `parent_span_id` to rebuild the tree.
+
+Used by `RunService`: graph execution -> `TraceCollector` -> `EventBus` (live) and
+`EventRepository` (persisted). It relies on conventions of the agentic layer:
+`BaseGraph.describe()` node ids and `BaseAgent.emit` custom events.
 """
 
 from __future__ import annotations

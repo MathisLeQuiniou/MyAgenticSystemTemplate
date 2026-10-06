@@ -66,6 +66,13 @@ class BaseGraph(ABC):
 
     # -- introspection for the frontend --------------------------------------------
     def describe(self) -> GraphDescription:
+        """Describe the compiled graph (nodes, edges, mermaid) for the frontend.
+
+        Node ids come from `get_graph(xray=True)`: subgraph nodes are prefixed with
+        their parent, e.g. "researcher:tools". `backend.services.tracing` derives the
+        `node_path` of trace events with the same convention (`node_path_from_ns`),
+        so the frontend can map events onto this graph: keep both in sync.
+        """
         g = self.compiled.get_graph(xray=True)
         nodes: list[GraphNode] = []
         for node_id, node in g.nodes.items():
