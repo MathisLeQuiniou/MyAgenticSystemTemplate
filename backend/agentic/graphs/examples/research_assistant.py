@@ -13,6 +13,7 @@ from __future__ import annotations
 
 from langgraph.graph import END, START, StateGraph
 from typing_extensions import NotRequired
+from langchain_core.messages import AIMessage
 
 from backend.agentic.agents import LLMAgent, RouterAgent
 from backend.agentic.graphs.base import BaseGraph
@@ -22,6 +23,13 @@ from backend.agentic.states import BaseState
 
 class ResearchAssistantState(BaseState):
     route: NotRequired[str]
+
+def _clean_state(state: ResearchAssistantState) -> ResearchAssistantState:
+    msgs = state.get("messages", [])
+    # remove trailing AIMessages 
+    while msgs and isinstance(msgs[-1], AIMessage):
+        msgs.pop()
+    return {"messages": msgs}
 
 
 @register_graph
@@ -48,10 +56,14 @@ class ResearchAssistantGraph(BaseGraph):
         writer = LLMAgent("writer", prompt="writer")
 
         builder = StateGraph(self.state_schema)
+        
         for agent in (router, researcher, writer):
             builder.add_node(agent.name, agent.as_node())
+        builder.add_node("clean state", _clean_state)
+
         builder.add_edge(START, router.name)
         builder.add_conditional_edges(router.name, router.route, {"research": researcher.name, "direct": writer.name})
-        builder.add_edge(researcher.name, writer.name)
+        builder.add_edge(researcher.name, "clean state")
+        builder.add_edge("clean state", writer.name)
         builder.add_edge(writer.name, END)
         return builder
