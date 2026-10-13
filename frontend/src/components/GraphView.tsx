@@ -9,9 +9,10 @@ import {
   type Edge,
   type Node,
   type NodeProps,
+  useNodesState,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import type { GraphDescription } from "../api/types";
 import type { NodeVisit } from "../lib/trace";
 
@@ -60,6 +61,7 @@ function GroupNode({ data }: NodeProps<Node<{ label: string; visited: boolean }>
 }
 
 const nodeTypes = { agent: AgentNode, group: GroupNode };
+const fitViewOptions = { padding: 0.15 };
 
 function layout(graph: GraphDescription) {
   const g = new dagre.graphlib.Graph({ compound: true });
@@ -81,10 +83,10 @@ function layout(graph: GraphDescription) {
 export function GraphView({ graph, visits, edgesTaken, selectedNode, onSelectNode }: Props) {
   const laidOut = useMemo(() => layout(graph), [graph]);
 
-  const { nodes, edges } = useMemo(() => {
+  // Static structure (ids, positions, parents): rebuilt only when the graph changes.
+  const baseNodes = useMemo(() => {
     const { g, groups } = laidOut;
     const nodes: Node[] = [];
-    const touched = new Set([...edgesTaken].flatMap((e) => e.split("->")));
     const topLeft = (id: string) => {
       const n = g.node(id);
       return { x: n.x - n.width / 2, y: n.y - n.height / 2 };
@@ -93,12 +95,11 @@ export function GraphView({ graph, visits, edgesTaken, selectedNode, onSelectNod
     // Groups first: React Flow requires parents before children.
     groups.forEach((grp) => {
       const n = g.node(grp);
-      const visited = [...visits.keys()].some((k) => k.startsWith(grp + ":"));
       nodes.push({
         id: grp,
         type: "group",
         position: topLeft(grp),
-        data: { label: grp, visited },
+        data: { label: grp, visited: false },
         style: { width: n.width, height: n.height },
         selectable: false,
         draggable: false,
@@ -107,47 +108,82 @@ export function GraphView({ graph, visits, edgesTaken, selectedNode, onSelectNod
     for (const n of graph.nodes) {
       const pos = topLeft(n.id);
       const parentPos = n.parent ? topLeft(n.parent) : { x: 0, y: 0 };
-      const isStartEnd = n.kind !== "node";
       nodes.push({
         id: n.id,
         type: "agent",
         position: { x: pos.x - parentPos.x, y: pos.y - parentPos.y },
         parentId: n.parent ?? undefined,
         extent: n.parent ? "parent" : undefined,
-        data: {
-          label: n.label,
-          kind: n.kind,
-          selected: selectedNode === n.id,
-          visit: isStartEnd ? (touched.has(n.id) ? ({ nodeId: n.id, order: [], status: "ok" } as NodeVisit) : undefined) : visits.get(n.id),
-        },
+        data: { label: n.label, kind: n.kind, selected: false, visit: undefined } satisfies AgentNodeData,
         draggable: false,
       });
     }
+    return nodes;
+  }, [laidOut, graph]);
 
-    const edges: Edge[] = graph.edges.map((e) => {
-      const taken = edgesTaken.has(`${e.source}->${e.target}`);
-      return {
-        id: `${e.source}->${e.target}`,
-        source: e.source,
-        target: e.target,
-        label: e.label ?? undefined,
-        animated: taken,
-        className: taken ? "edge-taken" : e.conditional ? "edge-conditional" : "",
-        markerEnd: { type: MarkerType.ArrowClosed, width: 16, height: 16 },
-        zIndex: 1,
-      };
-    });
-    return { nodes, edges };
-  }, [laidOut, graph, visits, edgesTaken, selectedNode]);
+  /*
+   * Nodes are kept in React Flow's controlled state so that the dimensions it
+   * measures (`measured`) survive updates. Rebuilding brand-new node objects on
+   * every trace event drops those dimensions: React Flow then hides the nodes
+   * until it re-measures them, and with events arriving in bursts it never
+   * does, leaving an empty canvas until the component is remounted.
+   */
+  const [nodes, setNodes, onNodesChange] = useNodesState<Node>(baseNodes);
+  useEffect(() => setNodes(baseNodes), [baseNodes, setNodes]);
+
+  // Dynamic state (visits, selection): only `data` changes, the rest of each node is kept.
+  useEffect(() => {
+    const touched = new Set([...edgesTaken].flatMap((e) => e.split("->")));
+    const visitedKeys = [...visits.keys()];
+    const kindOf = new Map(graph.nodes.map((n) => [n.id, n.kind]));
+    setNodes((nds) =>
+      nds.map((node) => {
+        if (node.type === "group") {
+          const visited = visitedKeys.some((k) => k.startsWith(node.id + ":"));
+          return node.data.visited === visited ? node : { ...node, data: { ...node.data, visited } };
+        }
+        const data = node.data as AgentNodeData;
+        const kind = kindOf.get(node.id) ?? data.kind;
+        const visit =
+          kind !== "node"
+            ? touched.has(node.id)
+              ? ({ nodeId: node.id, order: [], status: "ok" } as NodeVisit)
+              : undefined
+            : visits.get(node.id);
+        const selected = selectedNode === node.id;
+        if (data.selected === selected && sameVisit(data.visit, visit)) return node;
+        return { ...node, data: { ...data, visit, selected } };
+      }),
+    );
+  }, [graph, visits, edgesTaken, selectedNode, setNodes, baseNodes]);
+
+  const edges = useMemo<Edge[]>(
+    () =>
+      graph.edges.map((e) => {
+        const taken = edgesTaken.has(`${e.source}->${e.target}`);
+        return {
+          id: `${e.source}->${e.target}`,
+          source: e.source,
+          target: e.target,
+          label: e.label ?? undefined,
+          animated: taken,
+          className: taken ? "edge-taken" : e.conditional ? "edge-conditional" : "",
+          markerEnd: { type: MarkerType.ArrowClosed, width: 16, height: 16 },
+          zIndex: 1,
+        };
+      }),
+    [graph, edgesTaken],
+  );
 
   return (
     <div className="graph-view">
       <ReactFlow
         nodes={nodes}
         edges={edges}
+        onNodesChange={onNodesChange}
         nodeTypes={nodeTypes}
         fitView
-        fitViewOptions={{ padding: 0.15 }}
+        fitViewOptions={fitViewOptions}
         nodesConnectable={false}
         onNodeClick={(_, node) => {
           if (node.type !== "agent" || (node.data as AgentNodeData).kind !== "node") return;
@@ -161,4 +197,10 @@ export function GraphView({ graph, visits, edgesTaken, selectedNode, onSelectNod
       </ReactFlow>
     </div>
   );
+}
+
+function sameVisit(a: NodeVisit | undefined, b: NodeVisit | undefined): boolean {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  return a.status === b.status && a.order.length === b.order.length && a.order.every((o, i) => o === b.order[i]);
 }
