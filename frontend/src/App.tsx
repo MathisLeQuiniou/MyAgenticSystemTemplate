@@ -19,6 +19,10 @@ export default function App() {
     [selectRun, refresh],
   );
   const onRunChanged = useCallback((_: Run) => refresh(), [refresh]);
+  const onRunDeleted = useCallback(() => {
+    selectRun(null);
+    refresh();
+  }, [selectRun, refresh]);
   const currentThread = runs?.find((r) => r.id === runId)?.thread_id ?? null;
 
   return (
@@ -35,7 +39,7 @@ export default function App() {
       </aside>
       <main className="main">
         {runId ? (
-          <RunDetail key={runId} runId={runId} onRunChanged={onRunChanged} />
+          <RunDetail key={runId} runId={runId} onRunChanged={onRunChanged} onRunDeleted={onRunDeleted} />
         ) : (
           <div className="empty big">Start a run or select one from the list.</div>
         )}

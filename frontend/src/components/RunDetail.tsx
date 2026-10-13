@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { api } from "../api/client";
 import type { GraphDescription, Run } from "../api/types";
 import { useRunEvents } from "../hooks/useRunEvents";
+import { ConfirmDeleteDialog } from "./ConfirmDeleteDialog";
 import { buildSpanTree, computePath, formatDuration, traversedEdges, type Span } from "../lib/trace";
 import { GraphView } from "./GraphView";
 import { SpanDetails } from "./SpanDetails";
@@ -14,12 +15,19 @@ const loadGraph = (name: string) => {
   return graphCache.get(name)!;
 };
 
-export function RunDetail({ runId, onRunChanged }: { runId: string; onRunChanged: (run: Run) => void }) {
+interface Props {
+  runId: string;
+  onRunChanged: (run: Run) => void;
+  onRunDeleted: (runId: string) => void;
+}
+
+export function RunDetail({ runId, onRunChanged, onRunDeleted }: Props) {
   const [run, setRun] = useState<Run | null>(null);
   const [graph, setGraph] = useState<GraphDescription | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [selectedSpan, setSelectedSpan] = useState<Span | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const { events, tokens, live, finished } = useRunEvents(runId);
 
   // Load run + graph structure.
@@ -98,13 +106,25 @@ export function RunDetail({ runId, onRunChanged }: { runId: string; onRunChanged
           <span className="muted" title="thread_id">
             thread {run.thread_id.slice(0, 8)}
           </span>
-          {status === "running" && (
+          {status === "running" || status === "pending" ? (
             <button className="danger" onClick={() => api.cancelRun(run.id)}>
               Cancel
+            </button>
+          ) : (
+            <button className="danger outline" onClick={() => setConfirmDelete(true)} title="Delete this run permanently">
+              Delete
             </button>
           )}
         </div>
       </header>
+
+      {confirmDelete && (
+        <ConfirmDeleteDialog
+          runId={run.id}
+          onCancel={() => setConfirmDelete(false)}
+          onDeleted={() => onRunDeleted(run.id)}
+        />
+      )}
 
       {(answer || errorMsg) && (
         <section className={`answer ${errorMsg && !answer ? "answer-error" : ""}`}>

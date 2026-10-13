@@ -38,6 +38,21 @@ export interface Run {
   finished_at: string | null;
 }
 
+export interface RunDeletePreview {
+  run_id: string;
+  thread_id: string;
+  active: boolean;
+  other_runs_on_thread: number;
+  checkpoints_will_be_deleted: boolean;
+}
+
+export interface RunDeleteResult {
+  run_id: string;
+  thread_id: string;
+  checkpoints_deleted: boolean;
+  other_runs_on_thread: number;
+}
+
 export interface GraphSummary {
   name: string;
   description: string;

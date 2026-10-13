@@ -1,4 +1,4 @@
-import type { GraphDescription, GraphSummary, ModelProfile, Run, RunCreate, TraceEvent } from "./types";
+import type { GraphDescription, GraphSummary, ModelProfile, Run, RunCreate, RunDeletePreview, RunDeleteResult, TraceEvent } from "./types";
 
 const BASE = "/api";
 
@@ -28,5 +28,7 @@ export const api = {
   events: (id: string) => request<TraceEvent[]>(`/runs/${id}/events`),
   createRun: (body: RunCreate) => request<Run>("/runs", { method: "POST", body: JSON.stringify(body) }),
   cancelRun: (id: string) => request<{ cancelled: boolean }>(`/runs/${id}/cancel`, { method: "POST" }),
+  deleteRunPreview: (id: string) => request<RunDeletePreview>(`/runs/${id}/delete-preview`),
+  deleteRun: (id: string) => request<RunDeleteResult>(`/runs/${id}`, { method: "DELETE" }),
   streamUrl: (id: string) => `${BASE}/runs/${id}/stream`,
 };

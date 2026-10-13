@@ -56,7 +56,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
         bus = EventBus()
 
         # instantiate run service
-        run_service = RunService(graphs_registry, bus, runs_repo, events_repo)
+        run_service = RunService(graphs_registry, bus, runs_repo, events_repo, checkpointer)
 
         # store persistent ressources
         app.state.container = AppContainer(

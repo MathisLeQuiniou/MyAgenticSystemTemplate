@@ -1,4 +1,4 @@
-"""Run routes: start, list, inspect, cancel and stream graph runs (SSE)."""
+"""Run routes: start, list, inspect, cancel, delete and stream graph runs (SSE)."""
 
 from __future__ import annotations
 
@@ -8,7 +8,8 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from sse_starlette.sse import EventSourceResponse
 
 from backend.api.dependencies import AppContainer, get_container
-from backend.schemas import TERMINAL_EVENT_TYPES, RunCreate, RunRead, TraceEvent
+from backend.schemas import TERMINAL_EVENT_TYPES, RunCreate, RunDeletePreview, RunDeleteResult, RunRead, TraceEvent
+from backend.services import RunActiveError
 from backend.utils import to_jsonable
 
 router = APIRouter(tags=["runs"])
@@ -50,6 +51,23 @@ async def get_run_events(run_id: uuid.UUID, after_seq: int = -1, c: AppContainer
 async def cancel_run(run_id: uuid.UUID, c: AppContainer = Depends(get_container)) -> dict:
     await _get_run(run_id, c)
     return {"cancelled": await c.runs.cancel(run_id)}
+
+
+@router.get("/runs/{run_id}/delete-preview", response_model=RunDeletePreview)
+async def delete_run_preview(run_id: uuid.UUID, c: AppContainer = Depends(get_container)) -> RunDeletePreview:
+    """What `DELETE /runs/{run_id}` would remove (used by the confirmation dialog)."""
+    return await c.runs.delete_preview(await _get_run(run_id, c))
+
+
+@router.delete("/runs/{run_id}", response_model=RunDeleteResult)
+async def delete_run(run_id: uuid.UUID, c: AppContainer = Depends(get_container)) -> RunDeleteResult:
+    """Irreversibly delete a finished run (app schema) and, if no other run uses its
+    thread, the thread's LangGraph checkpoints. 409 if the run is still in progress."""
+    run = await _get_run(run_id, c)
+    try:
+        return await c.runs.delete(run)
+    except RunActiveError as exc:
+        raise HTTPException(409, str(exc)) from exc
 
 
 @router.get("/runs/{run_id}/state")

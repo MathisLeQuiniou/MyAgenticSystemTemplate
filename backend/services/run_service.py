@@ -6,21 +6,35 @@ import asyncio
 import traceback
 import uuid
 from typing import Any
+from langgraph.checkpoint.base import BaseCheckpointSaver
 
 from backend.agentic.graphs import GraphRegistry
 from backend.config import get_profile, get_settings
 from backend.db import EventRepository, RunRepository
-from backend.schemas import EventType, RunCreate, RunRead, TraceEvent
+from backend.schemas import EventType, RunCreate, RunDeletePreview, RunDeleteResult, RunRead, TraceEvent
 from backend.services.event_bus import EventBus
 from backend.services.tracing import TraceCollector
 from backend.utils import get_logger, to_jsonable, utcnow
 
 logger = get_logger(__name__)
 
+ACTIVE_STATUSES = ("pending", "running")
+
+class RunActiveError(Exception):
+    """The run is still pending/running and must be cancelled before it can be deleted."""
+
 
 class RunService:
-    def __init__(self, graphs: GraphRegistry, bus: EventBus, runs: RunRepository, events: EventRepository) -> None:
+    def __init__(
+        self,
+        graphs: GraphRegistry,
+        bus: EventBus,
+        runs: RunRepository,
+        events: EventRepository,
+        checkpointer: BaseCheckpointSaver | None = None,
+    ) -> None:
         self.graphs = graphs
+        self.checkpointer = checkpointer
         self.bus = bus
         self.runs = runs
         self.events = events
@@ -51,6 +65,44 @@ class RunService:
 
     def is_active(self, run_id: uuid.UUID) -> bool:
         return run_id in self._tasks
+
+    async def delete_preview(self, run: RunRead) -> RunDeletePreview:
+        """What `delete` would remove, so the UI can tell the user before confirming."""
+        others = await self.runs.count_by_thread(run.thread_id, exclude_run_id=run.id)
+        return RunDeletePreview(
+            run_id=run.id,
+            thread_id=run.thread_id,
+            active=self._is_running(run),
+            other_runs_on_thread=others,
+            checkpoints_will_be_deleted=others == 0 and self.checkpointer is not None,
+        )
+
+    async def delete(self, run: RunRead) -> RunDeleteResult:
+        """Delete a finished run from the app schema, and its thread's checkpoints if no other run uses it.
+
+        Checkpoints are keyed by thread, not by run, and form a parent chain, so they
+        are only removed when this run is the last one on its thread. They are deleted
+        first: if removing the run then fails, the run is still listed and the delete
+        can simply be retried.
+        """
+        if self._is_running(run):
+            raise RunActiveError("Run is still in progress, cancel it first.")
+
+        others = await self.runs.count_by_thread(run.thread_id, exclude_run_id=run.id)
+        checkpoints_deleted = False
+        if others == 0 and self.checkpointer is not None:
+            await self.checkpointer.adelete_thread(run.thread_id)
+            checkpoints_deleted = True
+
+        await self.runs.delete(run.id)
+        self.bus.close(run.id)  # end any SSE stream still attached to this run
+        logger.info("Deleted run %s (thread %s, checkpoints deleted: %s)", run.id, run.thread_id, checkpoints_deleted)
+        return RunDeleteResult(
+            run_id=run.id, thread_id=run.thread_id, checkpoints_deleted=checkpoints_deleted, other_runs_on_thread=others
+        )
+
+    def _is_running(self, run: RunRead) -> bool:
+        return self.is_active(run.id) or run.status in ACTIVE_STATUSES
 
     async def shutdown(self) -> None:
         for task in list(self._tasks.values()):

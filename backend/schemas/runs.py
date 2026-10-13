@@ -46,3 +46,20 @@ class RunRead(BaseModel):
         if self.started_at and self.finished_at:
             return (self.finished_at - self.started_at).total_seconds() * 1000
         return None
+
+
+class RunDeletePreview(BaseModel):
+    """What deleting a run would remove (shown in the confirmation dialog)."""
+
+    run_id: UUID
+    thread_id: str
+    active: bool = Field(description="The run is pending/running and must be cancelled first")
+    other_runs_on_thread: int = Field(description="Other runs sharing this thread_id")
+    checkpoints_will_be_deleted: bool = Field(description="True when this is the last run on its thread")
+
+
+class RunDeleteResult(BaseModel):
+    run_id: UUID
+    thread_id: str
+    checkpoints_deleted: bool
+    other_runs_on_thread: int

@@ -5,7 +5,7 @@ from __future__ import annotations
 import uuid
 from typing import Any
 
-from sqlalchemy import select, update
+from sqlalchemy import delete, func, select, update
 
 from backend.db.models import EventORM, RunORM
 from backend.infra.database import DbSessionmaker, session_scope
@@ -40,6 +40,20 @@ class RunRepository:
                 q = q.where(RunORM.graph_name == graph_name)
             rows = (await s.scalars(q)).all()
             return [RunRead.model_validate(r) for r in rows]
+
+    async def count_by_thread(self, thread_id: str, *, exclude_run_id: uuid.UUID | None = None) -> int:
+        """Number of runs using `thread_id` (optionally not counting one run)."""
+        async with session_scope(self._sessionmaker) as s:
+            q = select(func.count()).select_from(RunORM).where(RunORM.thread_id == thread_id)
+            if exclude_run_id is not None:
+                q = q.where(RunORM.id != exclude_run_id)
+            return int(await s.scalar(q) or 0)
+
+    async def delete(self, run_id: uuid.UUID) -> bool:
+        """Delete a run; its events go with it (`ON DELETE CASCADE`)."""
+        async with session_scope(self._sessionmaker) as s:
+            res = await s.execute(delete(RunORM).where(RunORM.id == run_id))
+            return bool(res.rowcount)
 
     async def mark_interrupted(self) -> int:
         """Runs still `running` at startup were killed with the process."""
