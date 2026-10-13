@@ -10,6 +10,7 @@ from langgraph.checkpoint.base import BaseCheckpointSaver
 from backend.agentic.graphs.base import BaseGraph
 from backend.agentic.skills import SkillRegistry
 from backend.agentic.tools import ToolRegistry
+from backend.errors import GraphNotFoundError
 from backend.utils import get_logger
 
 logger = get_logger(__name__)
@@ -55,10 +56,9 @@ class GraphRegistry:
                 logger.exception("Failed to compile graph %s", name)
 
     def get(self, name: str) -> BaseGraph:
-        try:
-            return self._graphs[name]
-        except KeyError:
-            raise KeyError(f"Unknown graph '{name}'. Available: {', '.join(self._graphs) or '-'}") from None
+        if name not in self._graphs:
+            raise GraphNotFoundError(f"Unknown graph '{name}'. Available: {', '.join(self._graphs) or '-'}")
+        return self._graphs[name]
 
     def all(self) -> list[BaseGraph]:
         return list(self._graphs.values())

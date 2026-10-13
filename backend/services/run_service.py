@@ -11,6 +11,7 @@ from langgraph.checkpoint.base import BaseCheckpointSaver
 from backend.agentic.graphs import GraphRegistry
 from backend.config import get_profile, get_settings
 from backend.db import EventRepository, RunRepository
+from backend.errors import RunActiveError
 from backend.schemas import EventType, RunCreate, RunDeletePreview, RunDeleteResult, RunRead, TraceEvent
 from backend.services.event_bus import EventBus
 from backend.services.tracing import TraceCollector
@@ -19,10 +20,6 @@ from backend.utils import get_logger, to_jsonable, utcnow
 logger = get_logger(__name__)
 
 ACTIVE_STATUSES = ("pending", "running")
-
-class RunActiveError(Exception):
-    """The run is still pending/running and must be cancelled before it can be deleted."""
-
 
 class RunService:
     def __init__(
@@ -42,9 +39,9 @@ class RunService:
 
     # -- public API --------------------------------------------------------------
     async def start(self, req: RunCreate) -> RunRead:
-        graph = self.graphs.get(req.graph)  # raises KeyError if unknown
+        graph = self.graphs.get(req.graph)
         if req.model_profile:
-            get_profile(req.model_profile)  # raises KeyError if unknown
+            get_profile(req.model_profile)
         run = await self.runs.create(
             graph_name=graph.name,
             thread_id=req.thread_id or str(uuid.uuid4()),

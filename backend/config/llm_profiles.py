@@ -12,6 +12,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field
 
 from backend.config.settings import get_settings
+from backend.errors import ModelProfileNotFoundError
 from backend.utils import load_yaml
 
 
@@ -54,7 +55,6 @@ def load_models_config() -> ModelsConfig:
 def get_profile(name: str | None = None) -> ModelProfile:
     cfg = load_models_config()
     name = name or cfg.default
-    try:
-        return cfg.profiles[name]
-    except KeyError:
-        raise KeyError(f"Unknown model profile '{name}'. Available: {', '.join(cfg.profiles)}") from None
+    if name not in cfg.profiles:
+        raise ModelProfileNotFoundError(f"Unknown model profile '{name}'. Available: {', '.join(cfg.profiles)}")
+    return cfg.profiles[name]

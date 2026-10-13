@@ -4,12 +4,12 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, Request
 from sse_starlette.sse import EventSourceResponse
 
 from backend.api.dependencies import AppContainer, get_container
 from backend.schemas import TERMINAL_EVENT_TYPES, RunCreate, RunDeletePreview, RunDeleteResult, RunRead, TraceEvent
-from backend.services import RunActiveError
+from backend.errors import RunNotFoundError
 from backend.utils import to_jsonable
 
 router = APIRouter(tags=["runs"])
@@ -18,10 +18,7 @@ _TERMINAL = {t.value for t in TERMINAL_EVENT_TYPES}
 
 @router.post("/runs", response_model=RunRead, status_code=201)
 async def create_run(req: RunCreate, c: AppContainer = Depends(get_container)) -> RunRead:
-    try:
-        return await c.runs.start(req)
-    except KeyError as exc:
-        raise HTTPException(404, str(exc).strip("'\"")) from exc
+    return await c.runs.start(req)
 
 
 @router.get("/runs", response_model=list[RunRead])
@@ -32,7 +29,7 @@ async def list_runs(graph: str | None = None, limit: int = 50, offset: int = 0, 
 async def _get_run(run_id: uuid.UUID, c: AppContainer) -> RunRead:
     run = await c.runs.runs.get(run_id)
     if not run:
-        raise HTTPException(404, "Run not found")
+        raise RunNotFoundError(f"Run '{run_id}' not found")
     return run
 
 
@@ -63,11 +60,7 @@ async def delete_run_preview(run_id: uuid.UUID, c: AppContainer = Depends(get_co
 async def delete_run(run_id: uuid.UUID, c: AppContainer = Depends(get_container)) -> RunDeleteResult:
     """Irreversibly delete a finished run (app schema) and, if no other run uses its
     thread, the thread's LangGraph checkpoints. 409 if the run is still in progress."""
-    run = await _get_run(run_id, c)
-    try:
-        return await c.runs.delete(run)
-    except RunActiveError as exc:
-        raise HTTPException(409, str(exc)) from exc
+    return await c.runs.delete(await _get_run(run_id, c))
 
 
 @router.get("/runs/{run_id}/state")

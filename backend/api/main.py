@@ -9,8 +9,9 @@ from __future__ import annotations
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from backend.agentic.graphs import GraphRegistry
 from backend.agentic.skills import SkillRegistry
@@ -19,6 +20,7 @@ from backend.api.dependencies import AppContainer
 from backend.api.routes import graphs, health, models, runs, skills
 from backend.config import get_settings
 from backend.db import EventRepository, RunRepository
+from backend.errors import AppError
 from backend.infra import postgres_checkpointer, postgres_sessionmaker
 from backend.services import EventBus, RunService
 from backend.utils import get_logger, setup_logging
@@ -79,6 +81,16 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
             await run_service.shutdown()
 
 
+def register_error_handlers(app: FastAPI) -> None:
+    """Turn application errors (`backend.errors`) into `{"detail": ...}` responses."""
+
+    @app.exception_handler(AppError)
+    async def _app_error(_: Request, exc: AppError) -> JSONResponse:
+        if exc.status_code >= 500:
+            logger.error("%s: %s", type(exc).__name__, exc.message)
+        return JSONResponse(status_code=exc.status_code, content={"detail": exc.message})
+
+
 def create_app() -> FastAPI:
     app = FastAPI(title=f"{settings.app_name} API", version="0.1.0", lifespan=lifespan)
     app.add_middleware(
@@ -88,6 +100,7 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    register_error_handlers(app)
     app.include_router(health.router, prefix="/api")
     app.include_router(graphs.router, prefix="/api")
     app.include_router(models.router, prefix="/api")

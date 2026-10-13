@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 
 from backend.api.dependencies import AppContainer, get_container
 from backend.schemas import GraphDescription, GraphSummary
@@ -17,7 +17,4 @@ async def list_graphs(c: AppContainer = Depends(get_container)) -> list[GraphSum
 
 @router.get("/graphs/{name}", response_model=GraphDescription)
 async def describe_graph(name: str, c: AppContainer = Depends(get_container)) -> GraphDescription:
-    try:
-        return c.graphs.get(name).describe()
-    except KeyError as exc:
-        raise HTTPException(404, str(exc)) from exc
+    return c.graphs.get(name).describe()

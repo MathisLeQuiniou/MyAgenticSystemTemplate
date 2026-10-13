@@ -79,6 +79,7 @@ backend/
 │                      llm/ (LLM clients per profile: OpenAI-compatible, Ollama, fake)
 ├── schemas/           Pydantic models (API + events)
 ├── services/          RunService, EventBus (SSE), tracing (TraceCollector: astream_events → trace events)
+├── errors.py          application errors (AppError → HTTP status, e.g. NotFoundError 404, ConflictError 409)
 ├── prompts/           system prompts in Markdown (agents' identity)
 ├── skills/            skills in SKILL.md format (instructions loaded on demand)
 └── utils/

@@ -22,6 +22,7 @@ from typing import Any
 import yaml
 
 from backend.config import get_settings
+from backend.errors import SkillNotFoundError
 from backend.utils import get_logger
 
 logger = get_logger(__name__)
@@ -98,13 +99,12 @@ class SkillRegistry:
             logger.info("Skills loaded: %s", ", ".join(self._skills))
 
     def get(self, name: str) -> Skill:
-        try:
-            return self._skills[name]
-        except KeyError:
-            raise KeyError(f"Unknown skill '{name}'. Available: {', '.join(self._skills) or '-'}") from None
+        if name not in self._skills:
+            raise SkillNotFoundError(f"Unknown skill '{name}'. Available: {', '.join(self._skills) or '-'}")
+        return self._skills[name]
 
     def get_many(self, *names: str) -> list[Skill]:
-        """Resolve skill names (raises KeyError if one is unknown); `"*"` means every skill."""
+        """Resolve skill names (raises SkillNotFoundError if one is unknown); `"*"` means every skill."""
         if names == ("*",):
             return self.all()
         return [self.get(n) for n in names]

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 
 from backend.api.dependencies import AppContainer, get_container
 from backend.schemas import SkillDetail, SkillSummary
@@ -17,8 +17,5 @@ async def list_skills(c: AppContainer = Depends(get_container)) -> list[SkillSum
 
 @router.get("/skills/{name}", response_model=SkillDetail)
 async def get_skill(name: str, c: AppContainer = Depends(get_container)) -> SkillDetail:
-    try:
-        s = c.skills.get(name)
-    except KeyError as exc:
-        raise HTTPException(404, str(exc).strip("'\"")) from exc
+    s = c.skills.get(name)
     return SkillDetail(name=s.name, description=s.description, files=s.files(), body=s.body)
