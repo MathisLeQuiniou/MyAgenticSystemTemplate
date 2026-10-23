@@ -16,7 +16,7 @@ from langchain_core.messages import AnyMessage
 from langgraph.graph.message import add_messages
 from typing_extensions import NotRequired, TypedDict
 
-from backend.agentic.states.reducers import increment, merge_dict
+from backend.agentic.states.reducers import increment, merge_dict, merge_files
 
 
 class BaseState(TypedDict):
@@ -35,3 +35,19 @@ class AgentLoopState(TypedDict):
 
     messages: Annotated[list[AnyMessage], add_messages]
     iterations: NotRequired[Annotated[int, increment]]
+
+
+class DeepAgentHostState(BaseState):
+    """State of a graph that hosts a `DeepAgent` as a node.
+
+    A deep agent has its own state; the parent only receives the keys it
+    declares. With these two keys, the planning and the virtual files of the
+    deep agent are kept in the parent state: visible in `/state` and in the run
+    output, and kept from one turn of a thread to the next (`files` only: the
+    deep agent starts each turn with an empty todo list).
+    """
+
+    # Last todo list written by `write_todos` (items: {"content", "status"}).
+    todos: NotRequired[list[dict[str, Any]]]
+    # Virtual filesystem of the deep agent: path -> {"content", "encoding", ...}.
+    files: NotRequired[Annotated[dict[str, Any], merge_files]]

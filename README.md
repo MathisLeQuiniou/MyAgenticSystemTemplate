@@ -66,7 +66,7 @@ click a trace row to see prompts, responses, tool arguments and tool results.
 ```
 backend/
 ├── agentic/
-│   ├── agents/        BaseAgent, LLMAgent (tool loop as a subgraph), RouterAgent
+│   ├── agents/        BaseAgent, LLMAgent (tool loop as a subgraph), RouterAgent, DeepAgent (deepagents)
 │   ├── graphs/        BaseGraph, graphs_registry (@register_graph), examples/
 │   ├── states/        BaseState (LangGraph TypedDict) + reducers
 │   ├── tools/         local_tools, tools_registry (ToolRegistry)
@@ -94,7 +94,8 @@ app.sh                 single launcher
 ### States — `backend/agentic/states`
 `BaseState` is a LangGraph `TypedDict` with `messages` (`add_messages` reducer)
 and `context` (merged dict). Extend it with your own keys; use the reducers
-(`append_list`, `merge_dict`, `increment`) when several nodes write the same key.
+(`append_list`, `merge_dict`, `increment`, `merge_files`) when several nodes write the same key.
+`DeepAgentHostState` adds the `todos` and `files` keys of a hosted `DeepAgent`.
 
 ### Agents — `backend/agentic/agents`
 | Class | Role |
@@ -102,6 +103,44 @@ and `context` (merged dict). Extend it with your own keys; use the reducers
 | `BaseAgent` | Minimal contract: `async run(state, config) -> partial update`. `as_node()` makes it addable to a graph. `get_model(config)` resolves the model (run override > agent profile > default). `emit()` publishes a custom event to the trace. |
 | `LLMAgent` | System prompt (`prompts/<name>.md` or plain text) + tools. With tools, it is a **subgraph** `agent ⇄ tools`: every tool call becomes a visible step. `max_iterations` bounds the loop. Override `format_prompt(state)` to inject state values. |
 | `RouterAgent` | Asks the LLM to choose a route, parses the answer leniently (falls back to `default`), writes `state["route"]`. Wire it with `add_conditional_edges(router.name, router.route, {...})`. |
+| `DeepAgent` | A [`deepagents`](https://docs.langchain.com/oss/python/deepagents/overview) agent (planning with `write_todos`, virtual files, `task` subagents, skills) built from the template's prompts, tools, skills and model profiles. `as_node()` returns the compiled deep agent: a **subgraph** whose steps, LLM calls and tool calls are all traced. See below. |
+
+#### Deep agents — `agents/deep_agent.py`
+```python
+# in BaseGraph.build(); state_schema = DeepAgentHostState
+agent = DeepAgent(
+    "deep_researcher",
+    prompt="deep_researcher",
+    tools=self.tools.get("search_knowledge_base", "calculate"),
+    skills=self.skills.get_many("financial-calculations"),
+    subagents=[...],          # optional deepagents.SubAgent specs (called through `task`)
+)
+builder.add_node(agent.name, agent.as_node())
+```
+- **Composable**: the deep agent is a node like any other (routers, writers,
+  `LLMAgent`s around it). It shares `messages` with the parent graph.
+- **State**: with `DeepAgentHostState` (or its `todos` / `files` keys in your
+  state), the last todo list and the virtual files are kept in the parent
+  state: visible in `/state` and the run output; `files` are kept from one
+  turn of a thread to the next.
+- **Model**: built with its `model_profile` (or the default), but every model
+  call of the agent and of its subagents uses the run's model chosen in the UI
+  (`RunModelMiddleware`). The summarization middleware keeps the build-time model.
+- **Skills**: exposed read-only under `/skills/` in the agent's virtual
+  filesystem (only the given skills are listed; writes are denied). The agent
+  opens `/skills/<name>/SKILL.md` with `read_file`: in the trace it is a
+  `read_file` call, not a **SKILL** badge.
+- **Planning**: `write_todos` (`TodoListMiddleware`) is added by `DeepAgent`
+  (`planning=False` to remove it); it is not a default of `create_deep_agent`.
+- **Prompt**: fixed when the agent is built (no `{today}` / `format_prompt`).
+- **Trace**: subagents run inside the `task` tool; their steps are nested
+  under the `task` span in the timeline (`node_path` like
+  `deep_researcher:tools:model`) but have no box in the graph view.
+- **Recursion limit**: one tool round of a deep agent takes ~4 graph steps
+  (`before_model`, `model`, `after_model`, `tools`): raise
+  `GRAPH_RECURSION_LIMIT` (50 by default) for long tasks.
+
+Example: `graphs/examples/deep_research_assistant.py`.
 
 ### Graphs — `backend/agentic/graphs`
 ```python
@@ -156,13 +195,24 @@ interest, monthly payments), attached to the `researcher`.
 
 ### LLM — `backend/config/models.yaml`
 A **profile** = one reachable model. Providers: `openai` (any OpenAI-compatible
-API: OpenAI, internal gateways, vLLM, Ollama `/v1`), `ollama` (native API),
+API: OpenAI, internal gateways, vLLM), `ollama` (native API),
 `fake` (deterministic, for tests/demos).
 
 For a **secured internal API**, the `internal` profile provides: `base_url`,
 key read from an environment variable, `default_headers`, `ca_bundle`
 (corporate CA), `verify_ssl`, `proxy`, `timeout`, `max_retries`. `${VAR}`
 values are read from the environment (`.env`).
+
+**Context window** — `context_window` (input + output tokens) per profile:
+- `ollama`: sent as `num_ctx`. Set it: Ollama's default is small and longer
+  prompts are **silently truncated** (tool results disappear from what the model
+  sees, the agent calls the same tool again and again). `extra.num_ctx` wins if set.
+- every provider: declared to LangChain as `max_input_tokens`
+  (`context_window - max_tokens`), read by components that adapt to the model's
+  limits, e.g. the deep agents' summarization (85% of the window instead of 170k tokens).
+- `openai`-compatible APIs: the **server** sets the real limit (e.g. vLLM
+  `--max-model-len`) and returns an error when it is exceeded; `context_window`
+  cannot enlarge it, set it to the server's value.
 
 The default profile is set in `models.yaml` (`default:`) or through
 `DEFAULT_MODEL_PROFILE`, and each run can choose another one.

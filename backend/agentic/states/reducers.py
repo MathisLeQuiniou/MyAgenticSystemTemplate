@@ -31,3 +31,17 @@ def replace(left: T, right: T) -> T:  # noqa: ARG001
 
 def increment(left: int | None, right: int | None) -> int:
     return (left or 0) + (right or 0)
+
+
+def merge_files(left: dict[str, Any] | None, right: dict[str, Any | None] | None) -> dict[str, Any]:
+    """Merge file maps (path -> file data); a `None` value deletes the file.
+
+    Same contract as the `files` key of `deepagents` (virtual filesystem of a deep agent).
+    """
+    result = dict(left or {})
+    for path, data in (right or {}).items():
+        if data is None:
+            result.pop(path, None)
+        else:
+            result[path] = data
+    return result

@@ -32,6 +32,19 @@ def _httpx_kwargs(profile: ModelProfile) -> dict:
     return kwargs
 
 
+def _declare_context_window(model: BaseChatModel, profile: ModelProfile, window: int | None = None) -> BaseChatModel:
+    """Declare the profile's context window to LangChain (`model.profile["max_input_tokens"]`).
+
+    Read by components that adapt to the model's limits, such as the deep agents'
+    summarization (which otherwise only triggers at 170k tokens).
+    """
+    window = window or profile.context_window
+    if window:
+        max_input = window - (profile.max_tokens or 0)
+        model.profile = {**(model.profile or {}), "max_input_tokens": max_input}
+    return model
+
+
 def _build_openai(profile: ModelProfile) -> BaseChatModel:
 
     httpx_kwargs = _httpx_kwargs(profile)
@@ -50,7 +63,7 @@ def _build_openai(profile: ModelProfile) -> BaseChatModel:
         kwargs["temperature"] = profile.temperature
     if profile.max_tokens is not None:
         kwargs["max_tokens"] = profile.max_tokens
-    return ChatOpenAI(**kwargs, **profile.extra)
+    return _declare_context_window(ChatOpenAI(**kwargs, **profile.extra), profile)
 
 
 def _build_ollama(profile: ModelProfile) -> BaseChatModel:
@@ -68,7 +81,10 @@ def _build_ollama(profile: ModelProfile) -> BaseChatModel:
         kwargs["temperature"] = profile.temperature
     if profile.max_tokens is not None:
         kwargs["num_predict"] = profile.max_tokens
-    return ChatOllama(**kwargs, **profile.extra)
+    if profile.context_window is not None:
+        kwargs["num_ctx"] = profile.context_window  # an explicit `extra.num_ctx` wins
+    model = ChatOllama(**{**kwargs, **profile.extra})
+    return _declare_context_window(model, profile, model.num_ctx)
 
 
 def _build_fake(profile: ModelProfile) -> BaseChatModel:

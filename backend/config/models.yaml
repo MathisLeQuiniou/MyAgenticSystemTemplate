@@ -5,7 +5,7 @@
 #
 # provider:
 #   openai  -> any OpenAI-compatible endpoint (OpenAI, Azure-style gateways,
-#              internal company APIs, vLLM, LM Studio, Ollama's /v1 endpoint...)
+#              internal company APIs, vLLM, LM Studio...)
 #   ollama  -> native Ollama API (langchain-ollama)
 #   fake    -> deterministic offline model, used for tests and demos
 #
@@ -19,13 +19,7 @@ profiles:
     model: qwen3:8b
     base_url: http://localhost:11434
     temperature: 0.1
-
-  ollama-openai-compat:
-    provider: openai
-    model: qwen3:8b
-    base_url: http://localhost:11434/v1
-    api_key: ollama
-    temperature: 0.1
+    context_window: 16384
 
   # Template for a secured, OpenAI-compatible internal API.
   internal:
