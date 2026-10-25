@@ -62,7 +62,6 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
 
         # store persistent ressources
         app.state.container = AppContainer(
-            db=db,
             tools=tools,
             skills=skills,
             graphs=graphs_registry,

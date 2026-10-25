@@ -18,7 +18,6 @@ class AppContainer:
     """
     Long-lived services, built once in the app lifespan.
     """
-    db: DbSessionmaker
     tools: ToolRegistry
     skills: SkillRegistry
     graphs: GraphRegistry
