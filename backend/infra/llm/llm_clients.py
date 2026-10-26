@@ -6,7 +6,6 @@ Profiles are loaded by `backend.config.llm_profiles`.
 
 from __future__ import annotations
 
-import os
 from functools import lru_cache
 
 import httpx
@@ -14,14 +13,8 @@ from langchain_core.language_models import BaseChatModel
 from langchain_openai import ChatOpenAI
 
 from backend.config import ModelProfile, get_profile
-
-
-def _resolve_api_key(profile: ModelProfile) -> str | None:
-    if profile.api_key:
-        return profile.api_key
-    if profile.api_key_env:
-        return os.environ.get(profile.api_key_env)
-    return None
+from langchain_ollama import ChatOllama
+from backend.infra.llm.fake import FakeToolCallingChatModel
 
 
 def _httpx_kwargs(profile: ModelProfile) -> dict:
@@ -46,11 +39,10 @@ def _declare_context_window(model: BaseChatModel, profile: ModelProfile, window:
 
 
 def _build_openai(profile: ModelProfile) -> BaseChatModel:
-
     httpx_kwargs = _httpx_kwargs(profile)
     kwargs = dict(
         model=profile.model,
-        api_key=_resolve_api_key(profile) or "not-needed",
+        api_key=profile.api_key or "not-needed",
         base_url=profile.base_url or None,
         timeout=profile.timeout,
         max_retries=profile.max_retries,
@@ -67,8 +59,6 @@ def _build_openai(profile: ModelProfile) -> BaseChatModel:
 
 
 def _build_ollama(profile: ModelProfile) -> BaseChatModel:
-    from langchain_ollama import ChatOllama
-
     client_kwargs: dict = {"timeout": profile.timeout}
     if profile.default_headers:
         client_kwargs["headers"] = {k: v for k, v in profile.default_headers.items() if v}
@@ -88,8 +78,6 @@ def _build_ollama(profile: ModelProfile) -> BaseChatModel:
 
 
 def _build_fake(profile: ModelProfile) -> BaseChatModel:
-    from backend.infra.llm.fake import FakeToolCallingChatModel
-
     return FakeToolCallingChatModel(model_name=profile.model)
 
 

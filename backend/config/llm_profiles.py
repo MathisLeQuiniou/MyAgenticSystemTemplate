@@ -27,10 +27,6 @@ class ModelProfile(BaseModel):
     api_key_env: str | None = None  # name of the env var holding the key
     temperature: float | None = None
     max_tokens: int | None = None
-    # Context window of the model (input + output tokens). Ollama: sent as `num_ctx`
-    # (Ollama silently truncates longer prompts). Every provider: declared to
-    # LangChain as `max_input_tokens` (used e.g. by the deep agents' summarization).
-    # For OpenAI-compatible APIs the server sets the real limit: use the same value.
     context_window: int | None = None
     timeout: float | None = 60
     max_retries: int = 2
