@@ -73,9 +73,6 @@ class BaseAgent(ABC):
         """
         await adispatch_custom_event(name, data, config=config)
 
-    @staticmethod
-    def today() -> str:
-        return dt.date.today().isoformat()
 
     def __repr__(self) -> str:
         return f"{type(self).__name__}(name={self.name!r})"

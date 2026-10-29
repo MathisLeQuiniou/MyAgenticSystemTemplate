@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from typing import Any
+import re
 
 from langchain_core.messages import AIMessage, BaseMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
@@ -15,6 +16,7 @@ from backend.agentic.agents.base import BaseAgent, load_prompt, strip_thinking
 from backend.agentic.skills import Skill, make_skill_tools, skills_catalog
 from backend.agentic.states import AgentLoopState
 
+_PLACEHOLDER_RE = re.compile(r"\{([A-Za-z_]\w*)\}")
 
 class LLMAgent(BaseAgent):
     """An LLM with a system prompt and (optionally) tools.
@@ -47,11 +49,15 @@ class LLMAgent(BaseAgent):
 
     # -- customisation points --------------------------------------------------
     def format_prompt(self, state: dict[str, Any]) -> str:
-        """Fill the prompt template. Override to inject values from the state."""
-        prompt = self.prompt_template.replace("{today}", self.today())
-        if self.skills:
-            prompt += "\n\n" + skills_catalog(self.skills)
-        return prompt
+            """Generic placeholder replacement method"""
+            prompt = self.prompt_template
+            def repl(m: re.Match) -> str:
+                key = m.group(1)
+                if key in state:
+                    return str(state[key])
+                return m.group(0)
+    
+            return _PLACEHOLDER_RE.sub(repl, prompt)
 
     def build_messages(self, state: dict[str, Any]) -> list[BaseMessage]:
         return [SystemMessage(self.format_prompt(state)), *state["messages"]]

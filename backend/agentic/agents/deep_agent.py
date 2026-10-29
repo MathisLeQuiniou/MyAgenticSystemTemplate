@@ -26,13 +26,14 @@ from __future__ import annotations
 from collections.abc import Awaitable, Callable, Sequence
 from pathlib import Path, PurePosixPath
 from typing import Any
+import re
 
 from deepagents import FilesystemPermission, SubAgent, create_deep_agent
 from deepagents.backends import CompositeBackend, FilesystemBackend, StateBackend
 from deepagents.backends.protocol import LsResult
 from deepagents.middleware.subagents import GENERAL_PURPOSE_SUBAGENT
 from langchain.agents.middleware import AgentMiddleware, ModelRequest, ModelResponse, TodoListMiddleware
-from langchain_core.runnables import RunnableConfig
+from langchain_core.runnables import RunnableConfig, RunnableLambda
 from langchain_core.tools import BaseTool
 from langgraph.config import get_config
 from langgraph.graph.state import CompiledStateGraph
@@ -42,6 +43,7 @@ from backend.agentic.skills import Skill
 from backend.infra.llm import get_chat_model
 
 SKILLS_ROUTE = "/skills/"
+_PLACEHOLDER_RE = re.compile(r"\{([A-Za-z_]\w*)\}")
 
 
 class RunModelMiddleware(AgentMiddleware):
@@ -114,13 +116,27 @@ class DeepAgent(BaseAgent):
         **deep_agent_kwargs: Any,
     ) -> None:
         super().__init__(name, description, model_profile)
-        self.system_prompt = load_prompt(prompt)
+        self.prompt_template = load_prompt(prompt)
         self.tools = list(tools)
         self.skills = list(skills)
         self.subagents = list(subagents)
         self.middleware = [*([TodoListMiddleware()] if planning else []), *middleware]
         self.deep_agent_kwargs = deep_agent_kwargs
         self._agent: CompiledStateGraph | None = None
+        self._last_formatted: str | None = None
+
+    # -- customisation points ----------------------------------------------------
+    def format_prompt(self, state: dict[str, Any]) -> str:
+        """Generic placeholder replacement method"""
+        prompt = self.prompt_template
+        def repl(m: re.Match) -> str:
+            key = m.group(1)
+            if key in state:
+                return str(state[key])
+            return m.group(0)
+
+        return _PLACEHOLDER_RE.sub(repl, prompt)
+
 
     # -- construction ------------------------------------------------------------
     def _skills_setup(self) -> dict[str, Any]:
@@ -154,16 +170,20 @@ class DeepAgent(BaseAgent):
             specs.append(general)
         return specs
 
-    def build(self) -> CompiledStateGraph:
+    def build(self, state: dict[str, Any]) -> CompiledStateGraph:
         setup = self._skills_setup()
         kwargs = dict(self.deep_agent_kwargs)
         if "permissions" in setup:
             setup["permissions"] += list(kwargs.pop("permissions", None) or [])
+        
         run_model = RunModelMiddleware(self.model_profile)
+        
+        system_prompt = self.format_prompt(state)
+        
         return create_deep_agent(
             model=get_chat_model(self.model_profile),
             tools=self.tools,
-            system_prompt=self.system_prompt,
+            system_prompt=system_prompt,
             middleware=[*self.middleware, run_model],
             subagents=self._subagents_with_run_model(run_model, setup.get("skills")),
             name=self.name,
@@ -174,14 +194,27 @@ class DeepAgent(BaseAgent):
     @property
     def agent(self) -> CompiledStateGraph:
         if self._agent is None:
-            self._agent = self.build()
+            # empty state for compulation, will be replaced later
+            self._agent = self.build(state={})
         return self._agent
 
     # -- LangGraph integration -------------------------------------------------
     def as_node(self) -> CompiledStateGraph:
         """The compiled deep agent: a subgraph whose steps and calls are all traced."""
-        return self.agent
+        async def _invoke(state: dict [str, Any], config: RunnableConfig) -> dict[str, Any]:
+            formatted = self.format_prompt(state)
+            if formatted != self._last_formatted:
+                self._last_formatted = formatted
+                self._agent = self.build(state)
+            return await self._agent.ainvoke(state, config)
+
+        return RunnableLambda(_invoke)
 
     async def run(self, state: dict[str, Any], config: RunnableConfig) -> dict[str, Any]:
         """Standalone use (outside a graph); in a graph, prefer `as_node()`."""
+        formatted = self.format_prompt(state)
+        if formatted != self._last_formatted:
+            self._last_formatted = formatted
+            self._agent = self.build(state)
+
         return await self.agent.ainvoke(state, config)
